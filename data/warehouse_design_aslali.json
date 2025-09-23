@@ -1,0 +1,24 @@
+{
+  "anchor": { "lat": 22.94, "lon": 72.62 },
+  "footprint": { "width": 120, "depth": 80, "height": 12 },
+  "docks": [
+    {"id":"D1","side":"north","type":"inbound"},
+    {"id":"D2","side":"north","type":"inbound"},
+    {"id":"D3","side":"north","type":"inbound"},
+    {"id":"D4","side":"north","type":"inbound"},
+    {"id":"D5","side":"north","type":"inbound"},
+    {"id":"D6","side":"south","type":"outbound"}
+  ],
+  "bays": [
+    {"id":"B1","type":"pallet","rect":[0,0,20,20]},
+    {"id":"B2","type":"bag","rect":[20,0,20,20]}
+  ],
+  "conveyors": [
+    {"id":"C1","type":"mechanical","points":[[0,0],[40,0]]},
+    {"id":"C2","type":"manual","points":[[0,20],[40,20]]}
+  ],
+  "truckPaths": {
+    "inbound":[[72.60,22.93],[72.62,22.94]],
+    "outbound":[[72.64,22.95],[72.62,22.94]]
+  }
+}
