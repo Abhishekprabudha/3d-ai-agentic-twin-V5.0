@@ -1,0 +1,115 @@
+{
+  "version": "2.0",
+  "warehouses": [
+    { "id": "WH1", "location": "Delhi",     "inventory": 500 },
+    { "id": "WH2", "location": "Mumbai",    "inventory": 495 },
+    { "id": "WH3", "location": "Bangalore", "inventory": 445 },
+    { "id": "WH4", "location": "Hyderabad", "inventory": 425 },
+    { "id": "WH5", "location": "Kolkata",   "inventory": 470 }
+  ],
+  "trucks": [
+    { "id": "T1",  "origin": "WH1", "destination": "WH2", "status": "Rerouted", "delay_hours": 6, "units": 3, "speed_kmph": 55, "od": "WH1-WH2" },
+    { "id": "T2",  "origin": "WH1", "destination": "WH3", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH1-WH3" },
+    { "id": "T3",  "origin": "WH1", "destination": "WH5", "status": "Rerouted", "delay_hours": 4, "units": 3, "speed_kmph": 55, "od": "WH1-WH5" },
+    { "id": "T4",  "origin": "WH2", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH1" },
+    { "id": "T5",  "origin": "WH2", "destination": "WH3", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH3" },
+    { "id": "T6",  "origin": "WH2", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH4" },
+    { "id": "T7",  "origin": "WH3", "destination": "WH2", "status": "Rerouted", "delay_hours": 5, "units": 3, "speed_kmph": 55, "od": "WH3-WH2" },
+    { "id": "T8",  "origin": "WH3", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH3-WH4" },
+    { "id": "T9",  "origin": "WH3", "destination": "WH5", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH3-WH5" },
+    { "id": "T10", "origin": "WH4", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH4-WH1" },
+    { "id": "T11", "origin": "WH4", "destination": "WH2", "status": "Rerouted", "delay_hours": 3, "units": 3, "speed_kmph": 55, "od": "WH4-WH2" },
+    { "id": "T12", "origin": "WH4", "destination": "WH5", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH4-WH5" },
+    { "id": "T13", "origin": "WH5", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH5-WH1" },
+    { "id": "T14", "origin": "WH5", "destination": "WH2", "status": "Rerouted", "delay_hours": 2, "units": 3, "speed_kmph": 55, "od": "WH5-WH2" },
+    { "id": "T15", "origin": "WH5", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH5-WH4" }
+  ],
+  "reroutes": [
+    { "truckId": "T1",  "path": ["WH1","WH2","WH4"] },
+    { "truckId": "T7",  "path": ["WH3","WH4","WH2"] },
+    { "truckId": "T11", "path": ["WH4","WH3","WH2"] },
+    { "truckId": "T3",  "path": ["WH1","WH4","WH5"] },
+    { "truckId": "T14", "path": ["WH5","WH1","WH2"] }
+  ],
+  "commentary": {
+    "static": "After correction: five disruptions resolved via dynamic reroutes. Inventory risk at Mumbai and Kolkata contained; service levels stabilized.",
+    "timeline": [
+      { "delay_ms": 400, "msg": "Routing update engaged. Priority is to protect Mumbai and Kolkata availability." },
+      { "delay_ms": 600, "msg": "T1 goes Delhi → Mumbai → Hyderabad to bypass landslide on the north–west corridor." },
+      { "delay_ms": 600, "msg": "T7 detours Bangalore → Hyderabad → Mumbai to avoid flooded section." },
+      { "delay_ms": 600, "msg": "T11 re-routed Hyderabad → Bangalore → Mumbai to clear the accident zone." },
+      { "delay_ms": 600, "msg": "T3 switches Delhi → Hyderabad → Kolkata to skirt roadworks on the eastern trunk." },
+      { "delay_ms": 600, "msg": "T14 diverts Kolkata → Delhi → Mumbai to bypass severe congestion." },
+      { "delay_ms": 800, "msg": "ETA recovery within tolerance. Buffer stock moved from Hyderabad to cover Mumbai’s demand dip." },
+      { "delay_ms": 800, "msg": "Final check: all five warehouses within target inventory bands; backorders prevented." }
+    ]
+  },
+  "hub": {
+    "policies": {
+      "use_hub": true,
+      "hubs": ["H_NAG"],
+      "hub_dwell_min": 60,
+      "consolidation_window_min": 30,
+      "capacity_units": 10,
+      "default_speed_kmph": 55
+    },
+    "warehouses": [
+      { "id": "WH1",   "location": "Delhi",     "inventory": 520 },
+      { "id": "WH2",   "location": "Mumbai",    "inventory": 480 },
+      { "id": "WH3",   "location": "Bangalore", "inventory": 430 },
+      { "id": "WH4",   "location": "Hyderabad", "inventory": 410 },
+      { "id": "WH5",   "location": "Kolkata",   "inventory": 460 },
+      { "id": "H_NAG", "location": "Nagpur Hub","inventory": 100, "type": "hub" }
+    ],
+    "trucks": [
+      { "id": "H-T1",  "origin": "WH1",   "destination": "H_NAG", "units": 9,  "speed_kmph": 55, "od": "WH1-WH4" },
+      { "id": "H-T2",  "origin": "H_NAG", "destination": "WH4",   "units": 9,  "speed_kmph": 55, "od": "WH1-WH4" },
+      { "id": "H-T3",  "origin": "WH5",   "destination": "H_NAG", "units": 10, "speed_kmph": 55, "od": "WH5-WH3" },
+      { "id": "H-T4",  "origin": "H_NAG", "destination": "WH3",   "units": 10, "speed_kmph": 55, "od": "WH5-WH3" },
+      { "id": "H-T5",  "origin": "WH2",   "destination": "H_NAG", "units": 9,  "speed_kmph": 55, "od": "WH2-WH3" },
+      { "id": "H-T6",  "origin": "H_NAG", "destination": "WH3",   "units": 9,  "speed_kmph": 55, "od": "WH2-WH3" },
+      { "id": "H-T7",  "origin": "WH1",   "destination": "H_NAG", "units": 8,  "speed_kmph": 55, "od": "WH1-WH2" },
+      { "id": "H-T8",  "origin": "H_NAG", "destination": "WH2",   "units": 8,  "speed_kmph": 55, "od": "WH1-WH2" },
+      { "id": "H-T9",  "origin": "WH5",   "destination": "H_NAG", "units": 9,  "speed_kmph": 55, "od": "WH5-WH2" },
+      { "id": "H-T10", "origin": "H_NAG", "destination": "WH2",   "units": 9,  "speed_kmph": 55, "od": "WH5-WH2" }
+    ],
+    "commentary": {
+      "static": "Nagpur hub mode: fewer movements via consolidation; ETA increases slightly due to hub dwell/batching."
+    }
+  },
+
+  "city": {
+    "proposal": {
+      "policies": {
+        "use_hub": true,
+        "hubs": ["H_GUW"],
+        "hub_dwell_min": 45,
+        "consolidation_window_min": 25,
+        "capacity_units": 10,
+        "default_speed_kmph": 55
+      },
+      "warehouses": [
+        { "id": "NE_AP", "location": "Itanagar (Arunachal Pradesh)", "inventory": 120 },
+        { "id": "NE_AS", "location": "Guwahati (Assam)",            "inventory": 160 },
+        { "id": "NE_MN", "location": "Imphal (Manipur)",             "inventory": 110 },
+        { "id": "NE_ML", "location": "Shillong (Meghalaya)",         "inventory": 115 },
+        { "id": "NE_MZ", "location": "Aizawl (Mizoram)",             "inventory": 100 },
+        { "id": "NE_NL", "location": "Kohima (Nagaland)",            "inventory": 105 },
+        { "id": "NE_TR", "location": "Agartala (Tripura)",           "inventory": 130 },
+        { "id": "H_GUW", "location": "Guwahati Hub",                 "inventory": 80, "type": "hub" }
+      ],
+      "trucks": [
+        { "id": "P1", "origin": "H_GUW", "destination": "NE_AP", "units": 8, "speed_kmph": 55, "od": "GUW-AP" },
+        { "id": "P2", "origin": "H_GUW", "destination": "NE_AS", "units": 8, "speed_kmph": 55, "od": "GUW-AS" },
+        { "id": "P3", "origin": "H_GUW", "destination": "NE_MN", "units": 8, "speed_kmph": 55, "od": "GUW-MN" },
+        { "id": "P4", "origin": "H_GUW", "destination": "NE_ML", "units": 8, "speed_kmph": 55, "od": "GUW-ML" },
+        { "id": "P5", "origin": "H_GUW", "destination": "NE_MZ", "units": 8, "speed_kmph": 55, "od": "GUW-MZ" },
+        { "id": "P6", "origin": "H_GUW", "destination": "NE_NL", "units": 8, "speed_kmph": 55, "od": "GUW-NL" },
+        { "id": "P7", "origin": "H_GUW", "destination": "NE_TR", "units": 8, "speed_kmph": 55, "od": "GUW-TR" }
+      ],
+      "commentary": {
+        "static": "City Addition (proposal): Add Guwahati hub and reassign NE states to it to save movements and truck-km."
+      }
+    }
+  }
+}

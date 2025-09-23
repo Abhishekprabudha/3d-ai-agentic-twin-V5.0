@@ -1,0 +1,76 @@
+{
+  "version": "2.0",
+  "warehouses": [
+    { "id": "WH1", "location": "Delhi",     "inventory": 520 },
+    { "id": "WH2", "location": "Mumbai",    "inventory": 480 },
+    { "id": "WH3", "location": "Bangalore", "inventory": 430 },
+    { "id": "WH4", "location": "Hyderabad", "inventory": 410 },
+    { "id": "WH5", "location": "Kolkata",   "inventory": 460 }
+  ],
+  "policies": {
+    "use_hub": false,
+    "hub_dwell_min": 0,
+    "consolidation_window_min": 0,
+    "capacity_units": 10,
+    "default_speed_kmph": 55
+  },
+  "trucks": [
+    { "id": "T1",  "origin": "WH1", "destination": "WH2", "status": "Delayed",  "delay_hours": 6, "units": 3, "speed_kmph": 55, "od": "WH1-WH2" },
+    { "id": "T2",  "origin": "WH1", "destination": "WH3", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH1-WH3" },
+    { "id": "T3",  "origin": "WH1", "destination": "WH5", "status": "Delayed",  "delay_hours": 4, "units": 3, "speed_kmph": 55, "od": "WH1-WH5" },
+
+    { "id": "T4",  "origin": "WH2", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH1" },
+    { "id": "T5",  "origin": "WH2", "destination": "WH3", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH3" },
+    { "id": "T6",  "origin": "WH2", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH2-WH4" },
+
+    { "id": "T7",  "origin": "WH3", "destination": "WH2", "status": "Delayed",  "delay_hours": 5, "units": 3, "speed_kmph": 55, "od": "WH3-WH2" },
+    { "id": "T8",  "origin": "WH3", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH3-WH4" },
+    { "id": "T9",  "origin": "WH3", "destination": "WH5", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH3-WH5" },
+
+    { "id": "T10", "origin": "WH4", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH4-WH1" },
+    { "id": "T11", "origin": "WH4", "destination": "WH2", "status": "Delayed",  "delay_hours": 3, "units": 3, "speed_kmph": 55, "od": "WH4-WH2" },
+    { "id": "T12", "origin": "WH4", "destination": "WH5", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH4-WH5" },
+
+    { "id": "T13", "origin": "WH5", "destination": "WH1", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH5-WH1" },
+    { "id": "T14", "origin": "WH5", "destination": "WH2", "status": "Delayed",  "delay_hours": 2, "units": 3, "speed_kmph": 55, "od": "WH5-WH2" },
+    { "id": "T15", "origin": "WH5", "destination": "WH4", "status": "On-Time",  "delay_hours": 0, "units": 3, "speed_kmph": 55, "od": "WH5-WH4" }
+  ],
+  "commentary": {
+    "static": "Baseline P2P network (no hub). More movements, faster O→D (no mid-stop).",
+    "timeline": [
+      { "delay_ms": 400, "msg": "Initial assessment: Five warehouses online — Delhi, Mumbai, Bangalore, Hyderabad, Kolkata." },
+      { "delay_ms": 600, "msg": "Direct flows run O→D with smaller trucks (lower fill)." }
+    ]
+  },
+
+  "city": {
+    "baseline": {
+      "policies": {
+        "use_hub": false,
+        "capacity_units": 10,
+        "default_speed_kmph": 55
+      },
+      "warehouses": [
+        { "id": "NE_AP", "location": "Itanagar (Arunachal Pradesh)", "inventory": 120 },
+        { "id": "NE_AS", "location": "Guwahati (Assam)",            "inventory": 160 },
+        { "id": "NE_MN", "location": "Imphal (Manipur)",             "inventory": 110 },
+        { "id": "NE_ML", "location": "Shillong (Meghalaya)",         "inventory": 115 },
+        { "id": "NE_MZ", "location": "Aizawl (Mizoram)",             "inventory": 100 },
+        { "id": "NE_NL", "location": "Kohima (Nagaland)",            "inventory": 105 },
+        { "id": "NE_TR", "location": "Agartala (Tripura)",           "inventory": 130 }
+      ],
+      "trucks": [
+        { "id": "C1", "origin": "WH5", "destination": "NE_AP", "units": 5, "speed_kmph": 55 },
+        { "id": "C2", "origin": "WH5", "destination": "NE_AS", "units": 6, "speed_kmph": 55 },
+        { "id": "C3", "origin": "WH5", "destination": "NE_MN", "units": 5, "speed_kmph": 55 },
+        { "id": "C4", "origin": "WH5", "destination": "NE_ML", "units": 5, "speed_kmph": 55 },
+        { "id": "C5", "origin": "WH5", "destination": "NE_MZ", "units": 5, "speed_kmph": 55 },
+        { "id": "C6", "origin": "WH5", "destination": "NE_NL", "units": 5, "speed_kmph": 55 },
+        { "id": "C7", "origin": "WH5", "destination": "NE_TR", "units": 6, "speed_kmph": 55 }
+      ],
+      "commentary": {
+        "static": "City Addition (baseline): Serving NE India from existing network (no Guwahati hub)."
+      }
+    }
+  }
+}
