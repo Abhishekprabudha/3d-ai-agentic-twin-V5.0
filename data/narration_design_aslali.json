@@ -1,0 +1,7 @@
+[
+  { "t": 0, "text": "Zooming into Aslali industrial area.", "mark":"ZOOM" },
+  { "t": 5, "text": "Building warehouse with five inbound and five outbound trucks.", "mark":"BUILD" },
+  { "t": 10, "text": "Inbound and outbound overlap requires six docks.", "mark":"DOCKS" },
+  { "t": 15, "text": "Throughput calculated and displayed.", "mark":"KPI" },
+  { "t": 20, "text": "Zooming out to connect Ahmedabad into the national corridor.", "mark":"NETWORK" }
+]
