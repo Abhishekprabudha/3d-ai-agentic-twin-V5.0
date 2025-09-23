@@ -97,7 +97,7 @@
         </div>
         <div id="msgs"></div>
         <div id="composer">
-          <input id="chatInput" type="text" placeholder="Type: Disrupt / Correct / Normal / Hub Addition / City Addition" autocomplete="off" />
+          <input id="chatInput" type="text" placeholder="Type: Disrupt / Correct / Normal / Hub Addition / City Addition / Design" autocomplete="off" />
           <button id="chatSend">Send</button>
         </div>
       </div>
@@ -106,6 +106,8 @@
       <div id="ui">
         <button id="btnBefore">Before Disruption</button>
         <button id="btnAfter">After Correction</button>
+        <!-- new button -->
+        <button id="btnWarehouse">Design Warehouse</button>
       </div>
       <div id="stats">
         <h3>Predicted Dashboard Status</h3>
@@ -119,5 +121,8 @@
   </div>
   <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
   <script src="script.js"></script>
+  <!-- new scripts for design play -->
+  <script src="playDesignWarehouse.js"></script>
+  <script src="facilityModel.js"></script>
 </body>
 </html>
