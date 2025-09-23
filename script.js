@@ -857,8 +857,8 @@ async function warehouseDesign() {
     if(window.PlayDesignWarehouse){
       PlayDesignWarehouse.run(
         map,
-        "/data/warehouse_design_aslali.json",
-        "/data/narration_design_aslali.json"
+        "data/warehouse_design_aslali.json",
+        "data/narration_design_aslali.json"
       );
     }
   },5000);
@@ -966,3 +966,4 @@ async function fetchOrDefault(file, fallback){
 }
 function tick(){ const now=performance.now(); const dt=Math.min(0.05,(now-__lastTS)/1000); __lastTS=now; __dt=dt; drawFrame(); requestAnimationFrame(tick); }
 requestAnimationFrame(tick);
+
