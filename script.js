@@ -1,11 +1,5 @@
 /* =========================================================================
-   Agentic Twin — Disrupt → Correct → Normal + Hub Addition + City Addition (v6.5)
-   Enhancements:
-   1) City Addition = two-stage narration (Baseline → Proposal) with the
-      Guwahati hub icon + movements revealed only at the proposal stage.
-   2) During City Addition (both baseline and proposal), the rest of India
-      continues moving as-is (base network trucks kept running), and in the
-      proposal stage we also keep Kolkata ↔ Guwahati movements visible.
+   Agentic Twin — Disrupt → Correct → Normal + Hub Addition + City Addition + Warehouse Design (v7.0)
    ======================================================================= */
 
 /* -------------------- tiny debug pill -------------------- */
@@ -64,7 +58,7 @@ const RP={
   "WH5-WH2":[[22.5726,88.3639],[23.5,86.0],[22.5,84.0],[21.5,81.5],[21.1,79.0],[20.3,76.5],[19.3,74.5],[19.0760,72.8777]],
   "WH5-WH3":[[22.5726,88.3639],[21.15,85.8],[19.5,85.8],[17.9,82.7],[16.5,80.3],[13.3409,77.1010],[12.9716,77.5946]]
 };
-/* Hub spokes (Nagpur) — included only in Hub mode */
+// Hub spokes
 RP["WH1-H_NAG"]=[[28.6139,77.2090],[26.5,78.2],[24.7,79.0],[22.8,79.2],[21.1458,79.0882]];
 RP["WH2-H_NAG"]=[[19.0760,72.8777],[19.6,74.8],[20.2,76.9],[20.7,78.4],[21.1458,79.0882]];
 RP["WH3-H_NAG"]=[[12.9716,77.5946],[14.6,78.6],[16.8,79.3],[19.0,79.4],[21.1458,79.0882]];
@@ -72,7 +66,6 @@ RP["WH4-H_NAG"]=[[17.3850,78.4867],[18.6,78.9],[19.8,79.2],[20.6,79.2],[21.1458,
 RP["WH5-H_NAG"]=[[22.5726,88.3639],[21.7,86.4],[21.2,83.8],[21.2,81.5],[21.1458,79.0882]];
 
 /* ---- Curved roads for City Addition ---- */
-/* Baseline: WH5 → Seven Sisters (gentle bends for road-like look) */
 RP["WH5-NE_AP"]=[[22.5726,88.3639],[24.5,89.0],[26.0,92.0],[27.0844,93.6053]];
 RP["WH5-NE_AS"]=[[22.5726,88.3639],[24.2,89.6],[25.5,90.8],[26.1445,91.7362]];
 RP["WH5-NE_MN"]=[[22.5726,88.3639],[23.5,90.4],[24.0,92.0],[24.8170,93.9368]];
@@ -81,7 +74,7 @@ RP["WH5-NE_MZ"]=[[22.5726,88.3639],[23.0,90.0],[23.4,91.3],[23.7271,92.7176]];
 RP["WH5-NE_NL"]=[[22.5726,88.3639],[24.3,89.7],[25.0,92.0],[25.6747,94.1100]];
 RP["WH5-NE_TR"]=[[22.5726,88.3639],[23.2,89.0],[23.5,90.2],[23.8315,91.2868]];
 
-/* Proposal: H_GUW → Seven Sisters (fan-out) + WH5 ↔ H_GUW */
+/* Proposal fan-outs */
 RP["WH5-H_GUW"]=[[22.5726,88.3639],[24.0,89.8],[25.2,90.8],[26.1445,91.7362]];
 RP["H_GUW-NE_AP"]=[[26.1445,91.7362],[26.7,92.2],[27.0844,93.6053]];
 RP["H_GUW-NE_MN"]=[[26.1445,91.7362],[25.6,92.4],[24.8170,93.9368]];
@@ -89,10 +82,7 @@ RP["H_GUW-NE_ML"]=[[26.1445,91.7362],[25.9,91.8],[25.5788,91.8933]];
 RP["H_GUW-NE_MZ"]=[[26.1445,91.7362],[25.0,92.0],[23.7271,92.7176]];
 RP["H_GUW-NE_NL"]=[[26.1445,91.7362],[25.8,92.6],[25.6747,94.1100]];
 RP["H_GUW-NE_TR"]=[[26.1445,91.7362],[25.0,91.3],[23.8315,91.2868]];
-
-/* NOTE: RP contains NE fan-outs, but we hide them from the base network;
-   they’re added only when City Addition is active. */
-
+/* -------------------- helpers -------------------- */
 const keyFor=(a,b)=>`${a}-${b}`;
 const toLonLat=ll=>ll.map(p=>[p[1],p[0]]);
 function getAnchor(id){
@@ -116,27 +106,24 @@ function expandIDsToLatLon(ids){
   return out;
 }
 
-/* Build base network; when includeHub=false, hide hub spokes.
-   IMPORTANT: exclude ANY NE_* or H_GUW links from the base set; they are added only in City Addition. */
+/* Build base network */
 function networkGeoJSON(includeHub){
   const keys=Object.keys(RP).filter(k=>
-      (includeHub || !k.includes("H_NAG")) &&         // hide Nagpur spokes unless Hub mode
-      !k.includes("H_GUW") &&                         // never include Guwahati links in base
-      !k.includes("NE_")                              // never include Seven Sisters links in base
+      (includeHub || !k.includes("H_NAG")) &&
+      !k.includes("H_GUW") &&
+      !k.includes("NE_")
   );
   const features=keys.map(k=>({
     type:"Feature",properties:{id:k},geometry:{type:"LineString",coordinates:toLonLat(RP[k])}
   }));
 
   if (SHOW_NE && !SHOW_HUB_CITY) {
-    // Baseline fan-out from Kolkata (explicit curved RPs above)
     for (const id of Object.keys(NE7)) {
       const k = `WH5-${id}`;
       const coords = RP[k] ? RP[k] : getRoadLatLon("WH5", id);
       features.push({ type:"Feature", properties:{id:k}, geometry:{type:"LineString",coordinates:toLonLat(coords)} });
     }
   } else if (SHOW_NE && SHOW_HUB_CITY) {
-    // Proposal: WH5 ↔ H_GUW + H_GUW → NE_* (skip NE_AS self-link)
     features.push({
       type:"Feature", properties:{id:"WH5-H_GUW"},
       geometry:{type:"LineString",coordinates:toLonLat(getRoadLatLon("WH5","H_GUW"))}
@@ -155,7 +142,7 @@ function networkGeoJSON(includeHub){
 let SCN_BEFORE=null, SCN_AFTER=null, SCN_HUB=null;
 let SCN_CITY_BASE=null, SCN_CITY_AFTER=null;
 
-/* -------------------- default scenario (fallback) -------------------- */
+/* -------------------- default scenario -------------------- */
 const DEFAULT_BEFORE={
   warehouses:Object.keys(CITY).map(id=>({id,location:CITY[id].name.split("—")[1].trim(),inventory:500})),
   trucks:[
@@ -194,7 +181,7 @@ const map=new maplibregl.Map({
 });
 map.addControl(new maplibregl.NavigationControl({visualizePitch:false}),"top-left");
 
-/* -------------------- overlay canvas for trucks & labels -------------------- */
+/* -------------------- overlay canvas -------------------- */
 let overlay=null, ctx=null;
 function ensureCanvas(){
   overlay=document.getElementById("trucksCanvas");
@@ -215,7 +202,6 @@ function resizeCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 window.addEventListener("resize",resizeCanvas);
-
 /* -------------------- base network + highlight layers -------------------- */
 let SHOW_HUB=false;      // Nagpur spokes & marker
 let SHOW_NE=false;       // Seven Sisters (hidden until City Addition)
@@ -416,7 +402,7 @@ function drawFrame(){
   drawWarehouses();
 }
 
-/* -------------------- Narration + Chat (city addition REPEAT) -------------------- */
+/* -------------------- Narration + Chat -------------------- */
 const synth=window.speechSynthesis; let VOICE=null;
 function pickVoice(){
   const vs=synth?.getVoices?.()||[];
@@ -434,7 +420,6 @@ const ChatUI = (() => {
   const clearBtn = document.getElementById('clearBtn');
 
   let onCommand = null;
-  let muted = false;
 
   function stamp() {
     const d = new Date();
@@ -458,10 +443,11 @@ const ChatUI = (() => {
     if(onCommand){
       if(cmd === 'disrupt' || cmd === 'correct' || cmd === 'normal' ||
          cmd === 'hub' || cmd === 'add hub' || cmd === 'hub addition' || cmd === 'nagpur hub' ||
-         cmd === 'city' || cmd === 'city addition'){
+         cmd === 'city' || cmd === 'city addition' ||
+         cmd === 'design' || cmd === 'design warehouse'){
         onCommand(cmd);
       } else {
-        pushBubble('Valid commands: Disrupt, Correct, Normal, Hub Addition, City Addition.', 'system');
+        pushBubble('Valid commands: Disrupt, Correct, Normal, Hub Addition, City Addition, Design.', 'system');
       }
     }
   }
@@ -469,10 +455,11 @@ const ChatUI = (() => {
   send.addEventListener('click', handleSend);
   input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ handleSend(); }});
   muteBtn.addEventListener('click', ()=>{
-    muted = !muted;
-    muteBtn.setAttribute('aria-pressed', String(muted));
-    muteBtn.textContent = muted ? '🔇 Unmute' : '🔊 Mute';
-    Narrator.setMuted(muted);
+    const pressed = muteBtn.getAttribute('aria-pressed') === 'true';
+    const now = !pressed;
+    muteBtn.setAttribute('aria-pressed', String(now));
+    muteBtn.textContent = now ? '🔇 Unmute' : '🔊 Mute';
+    Narrator.setMuted(now);
   });
   clearBtn.addEventListener('click', ()=>{ msgs.innerHTML = ''; });
 
@@ -486,8 +473,7 @@ const ChatUI = (() => {
   return {
     appendSystem: (t)=>pushBubble(t, 'system'),
     appendUser:   (t)=>pushBubble(t, 'user'),
-    onCommand:    (fn)=>{ onCommand = fn; },
-    setMuted:     (val)=>{ muted = !!val; muteBtn.setAttribute('aria-pressed', String(muted)); muteBtn.textContent = muted ? '🔇 Unmute' : '🔊 Mute'; }
+    onCommand:    (fn)=>{ onCommand = fn; }
   };
 })();
 
@@ -533,12 +519,11 @@ const Narrator = (() => {
       if(run!==currentRun) return;
       await queueOnce(lines, gap, rate, run, false);
     },
-     // inside: const Narrator = (() => { ... return { ... } })();
-sayLinesOnce: async (lines, gap=950, rate=0.95) => {
-  const run = newRunToken();
-  clearTTS();
-  await queueOnce(lines, gap, rate, run, false);
-},
+    sayLinesOnce: async (lines, gap=950, rate=0.95) => {
+      const run = newRunToken();
+      clearTTS();
+      await queueOnce(lines, gap, rate, run, false);
+    },
     sayOnce: (line)=>{
       const run = newRunToken();
       clearTTS();
@@ -687,7 +672,7 @@ function activateTrucksFromScenario(scn){
   (scn.trucks||[]).forEach((t,i)=>spawnTruck(t,i));
 }
 
-/* -------- NEW: merge helpers so other corridors keep moving during City Addition -------- */
+/* -------- merge helpers so other corridors keep moving during City Addition -------- */
 function prefixTruckIds(trucksList, prefix){
   return (trucksList||[]).map((t, i)=>({
     ...t,
@@ -695,7 +680,6 @@ function prefixTruckIds(trucksList, prefix){
   }));
 }
 function buildCombinedScenario(baseScn, overlayScn, overlayPrefix){
-  // Keep base warehouses/policies as-is; just concatenate trucks with namespacing
   const base = baseScn || {warehouses:[], trucks:[], policies:{}};
   const over = overlayScn || {warehouses:[], trucks:[], policies:{}};
   const trucksMerged = [
@@ -703,7 +687,7 @@ function buildCombinedScenario(baseScn, overlayScn, overlayPrefix){
     ...prefixTruckIds(over.trucks||[], overlayPrefix||"NE_")
   ];
   return {
-    warehouses: base.warehouses,          // stocks/labels UI is handled separately for NE
+    warehouses: base.warehouses,
     trucks: trucksMerged,
     policies: base.policies || {}
   };
@@ -814,10 +798,10 @@ async function cityAddition(){
   SHOW_HUB=false; SHOW_NE=true; SHOW_HUB_CITY=true; // reveal H_GUW + swap routes
   refreshRoadNetwork();
 
-  // Merge: base trucks + NE proposal trucks (ID-namespaced). Ensures Kolkata ↔ Guwahati flows + rest of India continue.
+  // Merge: base trucks + NE proposal trucks (ID-namespaced)
   const COMBINED_CITY_PROPOSAL = buildCombinedScenario(SCN_BEFORE, SCN_CITY_AFTER, "NEP_");
 
-  // If your city.proposal didn't include WH5↔H_GUW trucks, add a minimal fallback so the movement is visible.
+  // If proposal didn't include WH5↔H_GUW, add a minimal fallback
   const hasWH5GUW = (SCN_CITY_AFTER.trucks||[]).some(t=>
     (t.origin==="WH5" && (t.destination==="H_GUW"||t.destination==="NE_AS")) ||
     (t.destination==="WH5" && (t.origin==="H_GUW"||t.origin==="NE_AS"))
@@ -852,6 +836,35 @@ async function cityAddition(){
 
   mode="city";
 }
+/* -------------------- Warehouse Design flow -------------------- */
+async function warehouseDesign() {
+  Narrator.clear(); clearAlert(); clearFix();
+  SHOW_HUB=false; SHOW_NE=false; SHOW_HUB_CITY=false; refreshRoadNetwork();
+
+  const lines = [
+    "You want to design a warehouse in Ahmedabad, in the industrial area of Aslali.",
+    "Zooming in to the location now.",
+    "Making the warehouse for five inbound and five outbound trucks."
+  ];
+  await Narrator.sayLinesOnce(lines, 950, 0.95);
+
+  map.flyTo({
+    center:[72.62,22.94], zoom:12, pitch:45, bearing:20,
+    duration:5000
+  });
+
+  setTimeout(()=>{
+    if(window.PlayDesignWarehouse){
+      PlayDesignWarehouse.run(
+        map,
+        "/data/warehouse_design_aslali.json",
+        "/data/narration_design_aslali.json"
+      );
+    }
+  },5000);
+
+  mode="design";
+}
 
 /* -------------------- camera helper -------------------- */
 function fitToBoundsOfAnchors(ids){
@@ -867,7 +880,6 @@ const mapReady=new Promise(res=>map.on("load",res));
   await mapReady;
   ensureCanvas(); ensureRoadLayers();
 
-  // top-left buttons
   const ui=document.getElementById("ui")||document.body;
   const btnBefore=document.getElementById("btnBefore");
   const btnAfter=document.getElementById("btnAfter");
@@ -895,35 +907,39 @@ const mapReady=new Promise(res=>map.on("load",res));
     btnCity.style.marginLeft="8px";
     ui.appendChild(btnCity);
   }
+  let btnWarehouse=document.getElementById("btnWarehouse");
+  if(!btnWarehouse){
+    btnWarehouse=document.createElement("button");
+    btnWarehouse.id="btnWarehouse"; btnWarehouse.textContent="Design Warehouse";
+    btnWarehouse.style.marginLeft="8px";
+    ui.appendChild(btnWarehouse);
+  }
 
-  // wire buttons
   if(btnBefore) btnBefore.onclick=()=>startDisrupt();
   if(btnAfter)  btnAfter.onclick =()=>applyCorrect();
   btnNormal.onclick=()=>backToNormal();
   btnHub.onclick=()=>hubAddition();
   btnCity.onclick=()=>cityAddition();
+  btnWarehouse.onclick=()=>warehouseDesign();
 
-  // wire chat commands
   ChatUI.onCommand((cmd)=>{
     if(cmd==='disrupt') startDisrupt();
     else if(cmd==='correct') applyCorrect();
     else if(cmd==='normal') backToNormal();
     else if(cmd==='hub' || cmd==='add hub' || cmd==='hub addition' || cmd==='nagpur hub') hubAddition();
     else if(cmd==='city' || cmd==='city addition') cityAddition();
+    else if(cmd==='design' || cmd==='design warehouse') warehouseDesign();
   });
 
-  // load scenarios
   const beforeRaw = await fetchOrDefault("scenario_before.json", DEFAULT_BEFORE);
   SCN_BEFORE = beforeRaw;
   const afterRaw  = await fetchOrDefault("scenario_after.json",  DEFAULT_BEFORE);
   SCN_AFTER = { warehouses: afterRaw.warehouses, trucks: afterRaw.trucks, policies: afterRaw.policies||{} };
   SCN_HUB   = afterRaw.hub ? { warehouses: afterRaw.hub.warehouses, trucks: afterRaw.hub.trucks, policies: afterRaw.hub.policies } : null;
 
-  // City scenarios
   SCN_CITY_BASE  = beforeRaw.city?.baseline || null;
   SCN_CITY_AFTER = afterRaw.city?.proposal || null;
 
-  // compute stats snapshots
   beforeStats = computeStatsFromScenario(SCN_BEFORE);
   afterStats  = computeStatsFromScenario(SCN_AFTER);
   hubStats    = SCN_HUB ? computeStatsFromScenario(SCN_HUB) : null;
@@ -931,17 +947,14 @@ const mapReady=new Promise(res=>map.on("load",res));
   cityAfterStats = SCN_CITY_AFTER ? computeStatsFromScenario(SCN_CITY_AFTER) : null;
   Object.assign(baseStats, beforeStats);
 
-  // spawn trucks from BEFORE scenario
   activateTrucksFromScenario(SCN_BEFORE);
 
-  // initial camera — include base five; NE roads are hidden until City Addition
   const b=new maplibregl.LngLatBounds(); Object.values(CITY).forEach(c=>b.extend([c.lon,c.lat]));
   map.fitBounds(b,{padding:{top:60,left:60,right:320,bottom:60},duration:800,maxZoom:6.8});
 
-  // start clean
   renderStatsTable(beforeStats);
   Narrator.sayLinesTwice([
-    "Type Disrupt, Correct, Normal — or Hub Addition — or City Addition — to drive the simulation.",
+    "Type Disrupt, Correct, Normal — or Hub Addition — or City Addition — or Design Warehouse — to drive the simulation.",
     "🔊 Toggle narration with the Mute button or press Ctrl+M."
   ]);
 })();
@@ -953,5 +966,3 @@ async function fetchOrDefault(file, fallback){
 }
 function tick(){ const now=performance.now(); const dt=Math.min(0.05,(now-__lastTS)/1000); __lastTS=now; __dt=dt; drawFrame(); requestAnimationFrame(tick); }
 requestAnimationFrame(tick);
-
-
