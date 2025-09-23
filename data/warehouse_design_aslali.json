@@ -1,7 +1,7 @@
 {
   "anchor": { "lat": 22.94, "lon": 72.62 },
 
-  "footprint": { "width_m": 120, "depth_m": 80, "height_m": 12 },
+  "footprint": { "width_m": 120, "depth_m": 80, "height_m": 12, "rotation_deg": 0 },
 
   "docks": [
     { "id": "D1", "side": "north", "type": "inbound" },
@@ -9,7 +9,12 @@
     { "id": "D3", "side": "north", "type": "inbound" },
     { "id": "D4", "side": "north", "type": "inbound" },
     { "id": "D5", "side": "north", "type": "inbound" },
-    { "id": "D6", "side": "south", "type": "outbound" }
+
+    { "id": "D6", "side": "south", "type": "outbound" },
+    { "id": "D7", "side": "south", "type": "outbound" },
+    { "id": "D8", "side": "south", "type": "outbound" },
+    { "id": "D9", "side": "south", "type": "outbound" },
+    { "id": "D10","side": "south", "type": "outbound" }
   ],
 
   "bays": [
@@ -23,7 +28,7 @@
   ],
 
   "truckPaths_m": {
-    "inbound":  [[-2050.32, -1113.20], [0, 0]],
-    "outbound": [[ 2050.32,  1113.20], [0, 0]]
+    "inbound":  [[-200, -100], [0, 0]],
+    "outbound": [[ 200,  100], [0, 0]]
   }
 }
