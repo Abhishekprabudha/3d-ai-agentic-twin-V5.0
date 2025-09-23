@@ -1,22 +1,15 @@
-// facilityModel_three.js — robust version with 3D + safe 2D fallback + loud logs
-// Requires: THREE (loaded before this), MapLibre on the page.
-// JSON schema: anchor{lat,lon}, footprint{width_m,depth_m,height_m}, docks[], bays[], conveyors[], truckPaths_m
+// facilityModel_three.js — Three.js custom layer + 2D fallback (drop-in)
+// Requires: THREE (loaded before), MapLibre already on page.
+// JSON: anchor{lat,lon}, footprint{width_m,depth_m,height_m}, docks[], bays[], conveyors[], truckPaths_m
 
 (function(){
   const TAG = "[FacilityModel]";
   const SRC2D = "wh2d-src";
-  const L2D = {
-    GROUND:"wh2d-ground",
-    BUILD:"wh2d-build",
-    DOCKS:"wh2d-docks",
-    LABEL:"wh2d-label"
-  };
+  const L2D = { GROUND:"wh2d-ground", BUILD:"wh2d-build", DOCKS:"wh2d-docks", LABEL:"wh2d-label" };
 
-  // ------------ helpers ------------
   function metersPerDegLat(){ return 111_320; }
   function metersPerDegLon(latDeg){ return 111_320 * Math.cos(latDeg * Math.PI/180); }
 
-  // return lng,lat for local x,y (m) where (0,0) is building SW corner
   function localToLngLat(anchor, x, y, w, d){
     const sw = {
       lon: anchor.lon - (w/2) / metersPerDegLon(anchor.lat),
@@ -36,6 +29,10 @@
     const NE = localToLngLat(a, w, d, w, d);
     const NW = localToLngLat(a, 0, d, w, d);
     return [SW, SE, NE, NW, SW];
+  }
+  function inflate(ring, scale){
+    let cx=0, cy=0; for(const [x,y] of ring){ cx+=x; cy+=y; } cx/=ring.length; cy/=ring.length;
+    return ring.map(([x,y])=>[cx+(x-cx)*scale, cy+(y-cy)*scale]);
   }
 
   function docksAsPoints(design){
@@ -69,176 +66,128 @@
     return pts;
   }
 
-  // ------------ 2D fallback (always works) ------------
+  // ---------- 2D fallback ----------
   function clear2D(map){
     [L2D.LABEL,L2D.DOCKS,L2D.BUILD,L2D.GROUND].forEach(id=>{ if(map.getLayer(id)) map.removeLayer(id); });
     if(map.getSource(SRC2D)) map.removeSource(SRC2D);
   }
-
   function draw2D(map, design){
-    console.log(TAG, "Drawing 2D fallback …");
     const feats = [];
-
-    // building polygon + soft ground halo
     const ring = buildingRing(design);
     feats.push({ type:"Feature", properties:{ kind:"ground" }, geometry:{ type:"Polygon", coordinates:[inflate(ring,1.35)] }});
     feats.push({ type:"Feature", properties:{ kind:"building", h: design.footprint.height_m||10 }, geometry:{ type:"Polygon", coordinates:[ring] }});
-
-    // docks
     for(const d of docksAsPoints(design)){
-      feats.push({ type:"Feature", properties:{ kind:"dock", id:d.id, t:d.type }, geometry:{ type:"Point", coordinates:d.coord } });
+      feats.push({ type:"Feature", properties:{ kind:"dock", id:d.id, t:d.type }, geometry:{ type:"Point", coordinates:d.coord }});
     }
-
-    // label
-    feats.push({ type:"Feature", properties:{ kind:"label", text:"Aslali Warehouse" },
-      geometry:{ type:"Point", coordinates:[design.anchor.lon, design.anchor.lat] }});
-
-    if(!map.getSource(SRC2D)){
-      map.addSource(SRC2D, { type:"geojson", data:{ type:"FeatureCollection", features:feats }});
-    } else {
-      map.getSource(SRC2D).setData({ type:"FeatureCollection", features:feats });
-    }
+    feats.push({ type:"Feature", properties:{ kind:"label", text:"Aslali Warehouse" }, geometry:{ type:"Point", coordinates:[design.anchor.lon, design.anchor.lat] }});
+    if(!map.getSource(SRC2D)) map.addSource(SRC2D, { type:"geojson", data:{ type:"FeatureCollection", features:feats }});
+    else map.getSource(SRC2D).setData({ type:"FeatureCollection", features:feats });
 
     if(!map.getLayer(L2D.GROUND)){
       map.addLayer({ id:L2D.GROUND, type:"fill", source:SRC2D,
-        filter:["==",["get","kind"],"ground"],
-        paint:{ "fill-color":"#243042", "fill-opacity":0.35 }
-      });
+        filter:["==",["get","kind"],"ground"], paint:{ "fill-color":"#243042", "fill-opacity":0.35 }});
     }
     if(!map.getLayer(L2D.BUILD)){
       map.addLayer({ id:L2D.BUILD, type:"fill", source:SRC2D,
-        filter:["==",["get","kind"],"building"],
-        paint:{ "fill-color":"#c6cdd8", "fill-opacity":0.9, "fill-outline-color":"#4b5563" }
-      });
+        filter:["==",["get","kind"],"building"], paint:{ "fill-color":"#c6cdd8", "fill-opacity":0.9, "fill-outline-color":"#4b5563" }});
     }
     if(!map.getLayer(L2D.DOCKS)){
       map.addLayer({ id:L2D.DOCKS, type:"circle", source:SRC2D,
         filter:["==",["get","kind"],"dock"],
-        paint:{
-          "circle-radius":6,
-          "circle-color":["match",["get","t"],"inbound","#1e40af","outbound","#7f1d1d","#111827"],
-          "circle-stroke-color":"#ffffff","circle-stroke-width":2
-        }
-      });
+        paint:{ "circle-radius":6, "circle-color":["match",["get","t"],"inbound","#1e40af","outbound","#7f1d1d","#111827"],
+                "circle-stroke-color":"#ffffff","circle-stroke-width":2 }});
     }
     if(!map.getLayer(L2D.LABEL)){
       map.addLayer({ id:L2D.LABEL, type:"symbol", source:SRC2D,
         filter:["==",["get","kind"],"label"],
         layout:{ "text-field":["get","text"], "text-size":13, "text-offset":[0,1.2], "text-anchor":"top" },
-        paint:{ "text-color":"#e5e7eb", "text-halo-color":"#0b0b0d", "text-halo-width":1.2 }
-      });
+        paint:{ "text-color":"#e5e7eb", "text-halo-color":"#0b0b0d", "text-halo-width":1.2 }});
     }
   }
 
-  function inflate(ring, scale){
-    // crude centroid scale in lon/lat space (fine for small extents)
-    let cx=0, cy=0; for(const [x,y] of ring){ cx+=x; cy+=y; } cx/=ring.length; cy/=ring.length;
-    return ring.map(([x,y])=>[cx+(x-cx)*scale, cy+(y-cy)*scale]);
-  }
+  // ---------- 3D (Three.js custom layer) ----------
+  function addThreeLayer(map, design){
+    if(!window.THREE){ console.warn(TAG, "THREE not found → 2D fallback"); return {ok:false}; }
 
-  // ------------ 3D via Three.js custom layer ------------
-  function build3DLayer(map, design){
-    if(!window.THREE){
-      console.warn(TAG, "THREE not found — falling back to 2D.");
-      return { ok:false };
-    }
-    console.log(TAG, "Adding Three.js custom layer …");
+    const { width_m:w, depth_m:d, height_m:h=12 } = design.footprint || {};
+    const { lon, lat } = design.anchor || {};
+    const mc = maplibregl.MercatorCoordinate.fromLngLat([lon, lat], 0);
+    const M = mc.meterInMercatorCoordinateUnits(); // meters → mercator units ✔
 
-    const worldScale = 1; // MapLibre already supplies a proj matrix → keep scaled units
+    // group at world position; mesh centered & lifted by h/2
+    const group = new THREE.Group();
+    group.position.set(mc.x, mc.y, mc.z || 0);
 
-    // Convert meters box to mercator meters relative to anchor
-    const A = design.anchor;
-    const w = design.footprint.width_m;
-    const d = design.footprint.depth_m;
-    const h = (design.footprint.height_m||12);
+    const geom = new THREE.BoxGeometry(w*M, h*M, d*M);
+    const mat  = new THREE.MeshPhongMaterial({ color: 0xc6cdd8, transparent:true, opacity:0.96 });
+    const box  = new THREE.Mesh(geom, mat);
+    box.position.set(0, (h*M)/2, 0); // sit on ground
+    group.add(box);
 
-    // helper: meters → mercator units at anchor
-    const lonScale = metersPerDegLon(A.lat);
-    const latScale = metersPerDegLat();
-    const metersToMercatorX = (m)=> m / lonScale * (Math.cos(A.lat*Math.PI/180) * lonScale); // balanced fudge
-    const metersToMercatorY = (m)=> m / latScale * latScale;
+    // soft ground pad
+    const padGeom = new THREE.PlaneGeometry((w+20)*M, (d+20)*M);
+    const padMat  = new THREE.MeshBasicMaterial({ color: 0x203040, transparent:true, opacity:0.25 });
+    const pad = new THREE.Mesh(padGeom, padMat);
+    pad.rotation.x = -Math.PI/2;
+    group.add(pad);
 
-    // Build a centered box (x east, y north, z up)
-    const geom = new THREE.BoxGeometry(metersToMercatorX(w), metersToMercatorY(h), metersToMercatorY(d));
-    const mat  = new THREE.MeshPhongMaterial({ color: 0xc6cdd8, transparent:true, opacity:0.95 });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.castShadow = false; mesh.receiveShadow = false;
-
+    // lights
     const scene = new THREE.Scene();
-    scene.add(mesh);
-    const light = new THREE.DirectionalLight(0xffffff, 1.0);
-    light.position.set(300,400,200);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(group);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+    dir.position.set(200, 400, 200);
+    scene.add(dir);
 
-    const custom = {
+    const layer = {
       id: "warehouse-3d",
       type: "custom",
       renderingMode: "3d",
-      onAdd: function(map, gl){
+      onAdd(map, gl){
         this.camera = new THREE.Camera();
-        this.scene = scene;
-        this.renderer = new THREE.WebGLRenderer({
-          canvas: map.getCanvas(),
-          context: gl
-        });
+        this.scene  = scene;
+        this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl });
         this.renderer.autoClear = false;
       },
-      render: function(gl, matrix){
-        // MapLibre → THREE matrix
+      render(gl, matrix){
         const m = new THREE.Matrix4().fromArray(matrix);
         this.camera.projectionMatrix = m;
         this.renderer.state.reset();
         this.renderer.render(this.scene, this.camera);
         map.triggerRepaint();
       },
-      onRemove: function(){
+      onRemove(){
         try{ this.renderer.dispose(); }catch(e){}
       }
     };
 
-    // position the mesh at the anchor using maplibre mercatorForCoordinate
-    const M = maplibregl.MercatorCoordinate.fromLngLat([A.lon, A.lat], 0);
-    mesh.position.set(M.x*worldScale, M.y*worldScale, M.z||0);
-
-    // rotate so width goes east-west and depth north-south
-    mesh.rotation.set(0,0,0);
-
     try{
-      // Remove previous layer if present
-      if(map.getLayer(custom.id)) map.removeLayer(custom.id);
-      map.addLayer(custom);
-      console.log(TAG, "Three.js layer added.");
-      return { ok:true };
-    }catch(err){
-      console.error(TAG, "Failed to add Three layer:", err);
-      return { ok:false, err };
+      if(map.getLayer(layer.id)) map.removeLayer(layer.id);
+      map.addLayer(layer);
+      console.log(TAG, "3D layer added at", lon, lat, "scale M=", M);
+      return {ok:true};
+    }catch(e){
+      console.error(TAG, "addLayer failed:", e);
+      return {ok:false, err:e};
     }
   }
 
-  // ------------ public API ------------
+  // ---------- public ----------
   window.FacilityModel = {
     build(map, design){
-      console.log(TAG, "build() called. Anchor:", design?.anchor, "Footprint:", design?.footprint);
-
-      // quick visual ping at anchor — proves build() ran & JSON parsed
+      console.log(TAG, "build()", design);
       try{
         new maplibregl.Marker({ color:"#00d08a" })
-          .setLngLat([design.anchor.lon, design.anchor.lat])
-          .addTo(map);
-      }catch(e){
-        console.warn(TAG, "Anchor marker failed:", e);
-      }
+          .setLngLat([design.anchor.lon, design.anchor.lat]).addTo(map);
+      }catch(e){ console.warn(TAG, "marker failed", e); }
 
-      // Try 3D; if it fails, draw 2D so we still see *something*
-      const res = build3DLayer(map, design);
-      if(!res.ok){
-        draw2D(map, design);
-        if(window.Narrator) window.Narrator.sayOnce("Three-D render unavailable; showing 2-D plan.");
+      const res = addThreeLayer(map, design);
+      // keep 2D overlay so DOCKS pulse works & we always see *something*
+      draw2D(map, design);
+      if(res.ok){
+        if(window.Narrator) window.Narrator.sayOnce("Warehouse rendered (3D + 2D overlay).");
       }else{
-        // Also draw small 2D docks so pulse works with your play file
-        draw2D(map, design);
-        if(window.Narrator) window.Narrator.sayOnce("Warehouse rendered (3-D + 2-D overlay).");
+        if(window.Narrator) window.Narrator.sayOnce("3D unavailable; showing 2D plan.");
       }
     },
     clear(map){
