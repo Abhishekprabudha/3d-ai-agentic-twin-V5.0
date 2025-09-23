@@ -106,7 +106,6 @@
       <div id="ui">
         <button id="btnBefore">Before Disruption</button>
         <button id="btnAfter">After Correction</button>
-        <!-- new button -->
         <button id="btnWarehouse">Design Warehouse</button>
       </div>
       <div id="stats">
@@ -120,19 +119,15 @@
     </main>
   </div>
 
-  <!-- MapLibre -->
+  <!-- Core libs -->
   <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
-
-  <!-- Three.js (needed by facilityModel_three.js) -->
+  <!-- Three.js + GLTF loader for .glb -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- Your app logic -->
+  <!-- App scripts -->
   <script src="script.js"></script>
-
-  <!-- 3D facility model (Three.js custom layer) -->
-  <script src="facilityModel_three.js"></script>
-
-  <!-- Timeline/controller for the design play -->
   <script src="playDesignWarehouse.js"></script>
+  <script src="facilityModel_three.js"></script>
 </body>
 </html>
