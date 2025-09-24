@@ -1,228 +1,293 @@
-// facilityModel_three.js — Track-A 3D façade (Draco+KTX2 ready)
+// facilityModel_three.js — Parametric warehouse only (no GLB)
+// Works with THREE global (three.min.js) and MapLibre custom 3D layer.
+
 (function () {
-  const GLB_URL = "data/warehouse_aslali.glb";
+  const LAYER_ID = "facility-3d";
+  const DOCK_LAYER_ID = "wh-docks";
+  const DOCK_SOURCE_ID = "wh-docks-src";
 
-  let map=null, design=null;
-  let rootEl=null, renderer=null, scene=null, camera=null, glb=null, rafId=null;
+  // colors
+  const COLORS = {
+    floor: 0x5c6370,       // slate
+    wall: 0xf2efe8,        // warm ivory
+    dockInbound: 0x60a5fa, // blue
+    dockOutbound: 0x00c853, // green
+    conveyor: 0x2f3a4a,    // dark steel
+    bayPallet: 0xe5b76b,   // pallet boxes
+    bayBag: 0x9bb2c7,      // cool grey
+    lineApron: 0x93c5fd    // soft blue
+  };
 
-  let dockHighlights = [];
-  let pulseUntil = 0;
-  let _origSetPaintProperty = null;
+  // state
+  let current = null; // {map, design, layer, camera, scene, renderer, merc, scale, group}
+  let kpiDiv = null;
 
-  const $=(s)=>document.querySelector(s);
-  const log=(...a)=>{ try{console.log("[FacilityModel]",...a);}catch(_){} };
-  const warn=(...a)=>{ try{console.warn("[FacilityModel]",...a);}catch(_){} };
-  const err=(...a)=>{ try{console.error("[FacilityModel]",...a);}catch(_){} };
+  // ---- small utils ----
+  const rad = (deg) => (deg || 0) * Math.PI / 180;
 
-  function makeRoot(container){
-    const el=document.createElement("div");
-    el.id="three-root";
-    el.style.cssText="position:absolute;inset:0;z-index:3;pointer-events:none;display:none;";
-    container.appendChild(el);
-    return el;
-  }
-  function makeRenderer(el){
-    const r=new THREE.WebGLRenderer({antialias:true,alpha:true});
-    r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-    r.setSize(el.clientWidth, Math.max(1, el.clientHeight));
-    if("outputColorSpace" in r && THREE.SRGBColorSpace) r.outputColorSpace=THREE.SRGBColorSpace;
-    else if("outputEncoding" in r && THREE.sRGBEncoding) r.outputEncoding=THREE.sRGBEncoding;
-    r.toneMapping=THREE.NoToneMapping;
-    el.appendChild(r.domElement);
-    return r;
-  }
-  function makeCamera(){
-    const w=rootEl.clientWidth, h=Math.max(1, rootEl.clientHeight);
-    const cam=new THREE.PerspectiveCamera(45, w/h, 0.01, 10000);
-    cam.position.set(2,1.2,2); cam.lookAt(0,0,0);
-    return cam;
-  }
-  function addLights(s){
-    s.add(new THREE.HemisphereLight(0xffffff,0x3a3a3a,0.95));
-    const dir=new THREE.DirectionalLight(0xffffff,0.85);
-    dir.position.set(3,5,4); s.add(dir);
-  }
-  const boxOf=(obj)=>new THREE.Box3().setFromObject(obj);
-
-  function centerAndAutoscaleToFootprint(obj){
-    const fp=design?.footprint||{width_m:120,depth_m:80,height_m:12};
-    const b=boxOf(obj); const size=new THREE.Vector3(); b.getSize(size); const center=new THREE.Vector3(); b.getCenter(center);
-    obj.position.sub(center);
-    const w=Math.max(size.x,1e-6), d=Math.max(size.z,1e-6);
-    const s=Math.min(fp.width_m/w, fp.depth_m/d);
-    const within=(w/fp.width_m>0.5&&w/fp.width_m<2)&&(d/fp.depth_m>0.5&&d/fp.depth_m<2);
-    if(!within){ obj.scale.setScalar(s); log("autoscale",{w:w.toFixed(3),d:d.toFixed(3),s:s.toFixed(3)}); }
-  }
-  function fitCameraToObject(cam,obj){
-    const b=boxOf(obj); const size=new THREE.Vector3(); b.getSize(size); const center=new THREE.Vector3(); b.getCenter(center);
-    const maxDim=Math.max(size.x,size.y,size.z);
-    const dist=(maxDim/(2*Math.tan(THREE.MathUtils.degToRad(cam.fov*0.5))))*1.6;
-    cam.position.set(center.x+dist, center.y+dist*0.7, center.z+dist); cam.lookAt(center);
-  }
-  function animate(){
-    rafId=requestAnimationFrame(animate);
-    const now=performance.now(); const active=now<pulseUntil;
-    for(const m of dockHighlights){
-      if(active){
-        const t=(pulseUntil-now)/1600; const k=1+0.25*Math.sin((1-t)*Math.PI*3);
-        m.scale.setScalar(k); m.material.opacity=0.35+0.35*(1-t);
-      }else{ m.scale.setScalar(1); m.material.opacity=0.35; }
+  function ensureKPI() {
+    if (!kpiDiv) {
+      kpiDiv = document.createElement("div");
+      kpiDiv.id = "kpiDock";
+      kpiDiv.style.cssText =
+        "position:fixed; right:14px; top:14px; z-index:15; background:rgba(10,12,16,.9); color:#eaf1f7; border:1px solid #2a2f36; border-radius:10px; padding:10px 12px; font:13px/1.35 system-ui; box-shadow:0 8px 24px rgba(0,0,0,.25); display:none;";
+      kpiDiv.textContent = "Required docks: 6 (5 inbound + 1 outbound overlap)";
+      document.body.appendChild(kpiDiv);
     }
-    renderer.render(scene,camera);
-  }
-  function onResize(){
-    if(!renderer||!camera||!rootEl) return;
-    const w=rootEl.clientWidth, h=Math.max(1, rootEl.clientHeight);
-    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+    return kpiDiv;
   }
 
-  // ---- MapLibre 2D dock dots ----
-  function mPerDeg(latDeg){ const lat=latDeg*Math.PI/180; return {mPerDegLat:111320,mPerDegLon:111320*Math.cos(lat)}; }
-  function offsetMetersToLonLat(lat0,lon0,dx,dy){ const {mPerDegLat,mPerDegLon}=mPerDeg(lat0); return [lon0+dx/mPerDegLon, lat0+dy/mPerDegLat]; }
-  function ensureDockLayer(){
-    if(!map||!design) return;
-    const anchor=design.anchor||{lat:22.94,lon:72.62};
-    const fp=design.footprint||{width_m:120,depth_m:80};
-    const inbound=[]; for(let i=0;i<5;i++){ const x=((i+0.5)/5-0.5)*fp.width_m; const y=+fp.depth_m/2; inbound.push(offsetMetersToLonLat(anchor.lat,anchor.lon,x,y)); }
-    const outbound=[ offsetMetersToLonLat(anchor.lat,anchor.lon,0,-fp.depth_m/2) ];
-    const feats=[...inbound.map(p=>({type:"Feature",properties:{dir:"in"},geometry:{type:"Point",coordinates:p}})), ...outbound.map(p=>({type:"Feature",properties:{dir:"out"},geometry:{type:"Point",coordinates:p}}))];
-    if(!map.getSource("wh-docks-src")) map.addSource("wh-docks-src",{type:"geojson",data:{type:"FeatureCollection",features:feats}});
-    else map.getSource("wh-docks-src").setData({type:"FeatureCollection",features:feats});
-    if(!map.getLayer("wh-docks")){
-      map.addLayer({id:"wh-docks",type:"circle",source:"wh-docks-src",
-        paint:{"circle-color":["match",["get","dir"],"in","#60a5fa","out","#34d399","#9ca3af"],"circle-radius":6,"circle-opacity":0.95,"circle-stroke-color":"#0b0b0d","circle-stroke-width":1}});
+  // Expose KPI toggle so playDesignWarehouse can call it on the KPI mark.
+  function showKPI(on=true) {
+    const el = ensureKPI();
+    el.style.display = on ? "block" : "none";
+  }
+
+  // text sprite (for BAY labels etc)
+  function makeTextSprite(text, hex = 0xffffff, px = 64) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512; canvas.height = 256;
+    const g = canvas.getContext("2d");
+    g.clearRect(0,0,canvas.width,canvas.height);
+    g.fillStyle = "rgba(0,0,0,0)";
+    g.fillRect(0,0,canvas.width,canvas.height);
+    g.font = `bold ${px}px system-ui, Segoe UI, Roboto, sans-serif`;
+    g.fillStyle = "#e9edf2";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(text, canvas.width/2, canvas.height/2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const spr = new THREE.Sprite(mat);
+    // size in meters: ~ (w,h) scaled later by mercator scale
+    spr.userData.canvas = canvas;
+    return spr;
+  }
+
+  function removeIfExists(map, id, isLayer=true) {
+    try { if (isLayer ? map.getLayer(id) : map.getSource(id)) {
+      isLayer ? map.removeLayer(id) : map.removeSource(id);
+    }} catch(e){}
+  }
+
+  function addDockPulsePoint(map, lon, lat) {
+    removeIfExists(map, DOCK_LAYER_ID, true);
+    removeIfExists(map, DOCK_SOURCE_ID, false);
+    map.addSource(DOCK_SOURCE_ID, {
+      type: "geojson",
+      data: { type:"FeatureCollection", features:[
+        { type:"Feature", properties:{}, geometry:{ type:"Point", coordinates:[lon, lat] } }
+      ]}
+    });
+    map.addLayer({
+      id: DOCK_LAYER_ID, type:"circle", source: DOCK_SOURCE_ID,
+      paint: { "circle-color":"#60a5fa", "circle-radius": 6, "circle-opacity":0.95 }
+    });
+  }
+
+  // build parametric model into a group at origin (0,0,0). We'll attach transform via matrix in render.
+  function buildGeometry(group, design, scale) {
+    const fp = design.footprint || { width_m: 120, depth_m: 80, height_m: 12, rotation_deg: 0 };
+    const W = fp.width_m, D = fp.depth_m, H = fp.height_m;
+    const s = scale;
+
+    const upZ = H * s;
+
+    // ---- lights ----
+    const amb = new THREE.AmbientLight(0xffffff, 0.55);
+    group.add(amb);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+    dir.position.set(120*s, -160*s, 180*s);
+    group.add(dir);
+
+    // ---- floor slab ----
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(W*s, D*s, 0.6*s),
+      new THREE.MeshPhongMaterial({ color: COLORS.floor, shininess: 12 })
+    );
+    floor.position.set(0, 0, 0.3*s);
+    group.add(floor);
+
+    // ---- walls ----
+    const t = 0.6; // wall thickness (m)
+    const wallMat = new THREE.MeshPhongMaterial({ color: COLORS.wall, shininess: 8 });
+    const walls = new THREE.Group();
+    const north = new THREE.Mesh(new THREE.BoxGeometry(W*s, t*s, H*s), wallMat);
+    north.position.set(0, (D/2 - t/2)*s, H*s/2);
+    const south = new THREE.Mesh(new THREE.BoxGeometry(W*s, t*s, H*s), wallMat);
+    south.position.set(0, (-D/2 + t/2)*s, H*s/2);
+    const east = new THREE.Mesh(new THREE.BoxGeometry(t*s, D*s, H*s), wallMat);
+    east.position.set((W/2 - t/2)*s, 0, H*s/2);
+    const west = new THREE.Mesh(new THREE.BoxGeometry(t*s, D*s, H*s), wallMat);
+    west.position.set((-W/2 + t/2)*s, 0, H*s/2);
+    walls.add(north, south, east, west);
+    group.add(walls);
+
+    // ---- dock doors (5 north inbound, 5 south outbound) ----
+    const dockW = W / 6; // spacing bays
+    const doorW = Math.min(8, dockW * 0.82);  // m
+    const doorH = Math.min(6, H * 0.66);      // m
+    const frameT = 0.35;
+
+    function addDoor(xm, ym, inbound=true) {
+      const door = new THREE.Group();
+      const frameMat = new THREE.MeshPhongMaterial({ color: inbound? COLORS.dockInbound : COLORS.dockOutbound, shininess: 20 });
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(doorW*s, frameT*s, frameT*s), frameMat);
+      lintel.position.set(0, 0, (doorH+frameT/2)*s);
+      const postL = new THREE.Mesh(new THREE.BoxGeometry(frameT*s, frameT*s, doorH*s), frameMat);
+      postL.position.set((-doorW/2 + frameT/2)*s, 0, (doorH/2)*s);
+      const postR = postL.clone(); postR.position.x = (doorW/2 - frameT/2)*s;
+      door.add(lintel, postL, postR);
+      door.position.set(xm*s, ym*s, (H*0.05)*s);
+      group.add(door);
     }
-  }
-  function hookDockPulse(){
-    if(_origSetPaintProperty) return;
-    _origSetPaintProperty=map.setPaintProperty.bind(map);
-    map.setPaintProperty=(layerId,prop,value,klass)=>{
-      const r=_origSetPaintProperty(layerId,prop,value,klass);
-      if(layerId==="wh-docks"&&prop==="circle-radius") pulseUntil=performance.now()+1600;
-      return r;
-    };
-  }
 
-  // ---- 3D dock highlights (5 north + 1 south) ----
-  function buildDockHighlightsAround(glbRoot){
-    const box=boxOf(glbRoot); const size=new THREE.Vector3(); box.getSize(size); const center=new THREE.Vector3(); box.getCenter(center);
-    const W=size.x, D=size.z; if(!(W>0&&D>0)){ warn("dock highlights skipped: empty bbox"); return; }
-    const northZ=center.z + D*0.5 + 0.01, southZ=center.z - D*0.5 + 0.01; const y=box.min.y + 0.02;
-    const matIn=new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:0.35});
-    const matOut=new THREE.MeshBasicMaterial({color:0x34d399,transparent:true,opacity:0.35});
-    for(let i=0;i<5;i++){ const x=center.x + ((i+0.5)/5 - 0.5)*W; const m=new THREE.Mesh(new THREE.PlaneGeometry(W/(5+0.25), D*0.06), matIn); m.position.set(x,y,northZ); m.rotation.x=-Math.PI/2; scene.add(m); dockHighlights.push(m); }
-    { const m=new THREE.Mesh(new THREE.PlaneGeometry(W/5, D*0.06), matOut); m.position.set(center.x,y,southZ); m.rotation.x=-Math.PI/2; scene.add(m); dockHighlights.push(m); }
-  }
+    for (let i=0;i<5;i++) {
+      const x = -W/2 + dockW*(i+1);
+      addDoor(x,  D/2 - t/2, true);   // inbound north
+      addDoor(x, -D/2 + t/2, false);  // outbound south
+    }
 
-  // ---- KPI ----
-  function computeThroughputUPH(){
-    const docks=Array.isArray(design?.docks)?design.docks:[];
-    const inbound=docks.filter(d=>String(d.type||"").toLowerCase()==="inbound").length||5;
-    const overlapOut=Number(design?.peak_overlap?.outbound ?? 1);
-    const concurrent=inbound+overlapOut; // 5+1=6
-    const turn=Number(design?.dock_turn_min ?? 12);
-    return Math.round((concurrent*60)/Math.max(1,turn));
-  }
-  function writeKPIToStats(){
-    const uph=computeThroughputUPH(); const tbody=$("#statsTable tbody"); if(!tbody) return;
-    tbody.innerHTML=""; const tr=document.createElement("tr");
-    tr.innerHTML=`<td>Aslali Warehouse</td><td>—</td><td class="pos">+${uph}/hr</td><td class="neg">-${uph}/hr</td>`; tbody.appendChild(tr);
-  }
-
-  // ---- Fallback geometry ----
-  function addFallbackWarehouse(){
-    warn("Using fallback placeholder geometry (GLB missing or invalid).");
-    const fp=design?.footprint||{width_m:120,depth_m:80,height_m:12};
-    const geom=new THREE.BoxGeometry(fp.width_m, fp.height_m, fp.depth_m);
-    const mat=new THREE.MeshStandardMaterial({color:0xdedede,metalness:0,roughness:0.9,transparent:true,opacity:0.95});
-    glb=new THREE.Mesh(geom,mat); glb.position.set(0,fp.height_m/2,0); scene.add(glb);
-  }
-
-  async function build(mapInstance, designJson){
-    dispose();
-    map=mapInstance; design=designJson||{};
-    const container=map.getContainer?map.getContainer():(document.getElementById("stage")||document.body);
-
-    rootEl=makeRoot(container); rootEl.style.display="";
-    renderer=makeRenderer(rootEl); scene=new THREE.Scene(); camera=makeCamera(); addLights(scene);
-
-    let loaded=false;
-    await new Promise((resolve)=>{
-      const LoaderCtor =
-        (window.GLTFLoader && typeof window.GLTFLoader==="function") ? window.GLTFLoader :
-        (THREE.GLTFLoader   && typeof THREE.GLTFLoader==="function") ? THREE.GLTFLoader : null;
-
-      if(!LoaderCtor){ err("GLTFLoader not available on window/THREE"); resolve(); return; }
-
-      const loader=new LoaderCtor();
-
-      // Draco (if present)
-      if(window.DRACOLoader || THREE.DRACOLoader){
-        const DracoCtor=window.DRACOLoader || THREE.DRACOLoader;
-        const draco=new DracoCtor();
-        draco.setDecoderPath('https://unpkg.com/three@0.152.2/examples/js/libs/draco/');
-        loader.setDRACOLoader(draco);
-      }
-      // KTX2 (if present)
-      if(window.KTX2Loader || THREE.KTX2Loader){
-        const KTX2Ctor=window.KTX2Loader || THREE.KTX2Loader;
-        const ktx2=new KTX2Ctor();
-        ktx2.setTranscoderPath('https://unpkg.com/three@0.152.2/examples/js/libs/basis/');
-        ktx2.detectSupport(renderer);
-        loader.setKTX2Loader(ktx2);
-      }
-
-      loader.load(
-        `${GLB_URL}?v=${Date.now()}`,
-        (gltf)=>{
-          try{
-            glb=gltf.scene || gltf.scenes?.[0];
-            if(!glb) throw new Error("no scene in glb");
-            scene.add(glb);
-            centerAndAutoscaleToFootprint(glb);
-            fitCameraToObject(camera, glb);
-            buildDockHighlightsAround(glb);
-            loaded=true; log("GLB loaded OK");
-          }catch(e){ err("GLB parse error:", e); }
-          resolve();
-        },
-        undefined,
-        (e)=>{ err("GLB load failed:", e?.message||e); resolve(); }
+    // ---- bays ----
+    (design.bays||[]).forEach(b=>{
+      const [x,y,w,h] = b.rect_m;
+      const isBag = (b.type||'').toLowerCase().includes('bag');
+      const col = isBag ? COLORS.bayBag : 0x8897a8;
+      const pad = new THREE.Mesh(
+        new THREE.BoxGeometry(w*s, h*s, 0.2*s),
+        new THREE.MeshPhongMaterial({ color: col, shininess: 6, transparent:true, opacity:0.85 })
       );
+      pad.position.set((x+w/2 - W/2)*s + W*s/2 - W*s/2, (y+h/2 - D/2)*s + D*s/2 - D*s/2, 0.1*s);
+      // Shift to center origin: x,y are already local from (0,0) top-left? The JSON uses [0,0] as internal SW?
+      // We'll interpret rect_m coordinates as from bottom-left corner of floor.
+      pad.position.set((x - W/2 + w/2)*s, (y - D/2 + h/2)*s, 0.1*s);
+      group.add(pad);
+
+      // pallets
+      if (!isBag) {
+        for (let i=0;i<Math.max(1, Math.floor((w*h)/60)); i++){
+          const bx = (x + (i%3+0.5)*(w/3) - W/2)*s;
+          const by = (y + (Math.floor(i/3)+0.5)*(h/3) - D/2)*s;
+          const stack = new THREE.Mesh(
+            new THREE.BoxGeometry(4*s, 4*s, 2*s),
+            new THREE.MeshPhongMaterial({ color: COLORS.bayPallet, shininess: 8 })
+          );
+          stack.position.set(bx, by, 1.2*s);
+          group.add(stack);
+        }
+      }
+
+      // label
+      const label = makeTextSprite((b.type||'').toUpperCase() || "BAY");
+      // sprite size in meters
+      label.scale.set(20*s, 8*s, 1);
+      label.position.set((x - W/2 + w/2)*s, (y - D/2 + h/2)*s, 6*s);
+      group.add(label);
     });
 
-    if(!loaded){
-      addFallbackWarehouse();
-      fitCameraToObject(camera, glb);
-      buildDockHighlightsAround(glb);
+    // ---- conveyors ----
+    const convGrp = new THREE.Group();
+    (design.conveyors||[]).forEach(c=>{
+      const pts = (c.points_m||[]).map(p=>new THREE.Vector3((p[0]-W/2)*s, (p[1]-D/2)*s, 1.2*s));
+      if (pts.length<2) return;
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tube = new THREE.TubeGeometry(curve, 60, 0.5*s, 8, false);
+      const mat = new THREE.MeshPhongMaterial({ color: COLORS.conveyor, shininess: 12 });
+      const mesh = new THREE.Mesh(tube, mat);
+      convGrp.add(mesh);
+    });
+    group.add(convGrp);
+
+    // ---- truck aprons (polylines) ----
+    function addApron(points, color) {
+      const pts = points.map(p=>new THREE.Vector3((p[0])*s, (p[1])*s, 0.35*s)); // already local meters?
+      // Interpret truckPaths_m as local meters relative to center (matches your JSON)
+      const mat = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(geo, mat);
+      group.add(line);
+    }
+    if (design.truckPaths_m?.inbound)  addApron(design.truckPaths_m.inbound, COLORS.lineApron);
+    if (design.truckPaths_m?.outbound) addApron(design.truckPaths_m.outbound, COLORS.lineApron);
+
+    // rotate whole facility by footprint.rotation_deg (Z-up)
+    group.rotation.z = rad(fp.rotation_deg||0);
+
+    // "IN"/"OUT" labels on walls (sprites)
+    const inLabel = makeTextSprite("IN");
+    inLabel.scale.set(12*s, 6*s, 1);
+    inLabel.position.set(0, (D/2 - 1.5)*s, 6*s);
+    group.add(inLabel);
+    const outLabel = makeTextSprite("OUT");
+    outLabel.scale.set(14*s, 6*s, 1);
+    outLabel.position.set(0, (-D/2 + 1.5)*s, 6*s);
+    group.add(outLabel);
+  }
+
+  function build(map, design) {
+    // dispose previous
+    if (current && map.getLayer(LAYER_ID)) {
+      try { map.removeLayer(LAYER_ID); } catch(e){}
     }
 
-    ensureDockLayer(); hookDockPulse();
-    show(); onResize(); writeKPIToStats(); animate();
+    const anchor = design.anchor || { lat: 22.94, lon: 72.62 };
+    // pulse point for DOCKS animation
+    addDockPulsePoint(map, anchor.lon, anchor.lat);
 
-    window.addEventListener("resize", onResize);
-    if(map && map.on) map.on("resize", onResize);
+    // mercator scale
+    const merc = maplibregl.MercatorCoordinate.fromLngLat([anchor.lon, anchor.lat], 0);
+    const scale = merc.meterInMercatorCoordinateUnits();
+
+    const customLayer = {
+      id: LAYER_ID,
+      type: 'custom',
+      renderingMode: '3d',
+      onAdd: function (map_, gl) {
+        this.camera = new THREE.Camera();
+        this.scene = new THREE.Scene();
+
+        // Use the map's GL context
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: map_.getCanvas(),
+          context: gl,
+          antialias: true
+        });
+        this.renderer.autoClear = false;
+        this.scene.add(new THREE.Group()); // placeholder
+
+        this.group = new THREE.Group();
+        this.scene.add(this.group);
+        buildGeometry(this.group, design, scale);
+      },
+      render: function (gl, matrix) {
+        const m = new THREE.Matrix4().fromArray(matrix);
+
+        // translate to anchor & scale meters -> mercator units (flip Y)
+        const l = new THREE.Matrix4()
+          .makeTranslation(merc.x, merc.y, merc.z)
+          .scale(new THREE.Vector3(scale, -scale, scale));
+
+        this.camera.projectionMatrix = m.multiply(l);
+        this.renderer.resetState();
+        this.renderer.render(this.scene, this.camera);
+        map.triggerRepaint();
+      }
+    };
+
+    map.addLayer(customLayer);
+
+    current = {
+      map, design, merc, scale,
+      layer: customLayer
+    };
+
+    // (Optional) show KPI automatically after a short delay if PlayDesignWarehouse doesn't call us
+    setTimeout(()=> showKPI(true), 16000);
+
+    return Promise.resolve();
   }
 
-  function show(){ if(rootEl) rootEl.style.display=""; }
-  function hide(){ if(rootEl) rootEl.style.display="none"; }
-  function dispose(){
-    try{
-      if(rafId) cancelAnimationFrame(rafId); rafId=null;
-      dockHighlights.length=0;
-      if(renderer){ renderer.dispose?.(); renderer.domElement?.parentNode?.removeChild(renderer.domElement); }
-      rootEl?.parentNode?.removeChild(rootEl);
-      rootEl=null; renderer=null; scene=null; camera=null; glb=null;
-      if(map && _origSetPaintProperty){ map.setPaintProperty=_origSetPaintProperty; _origSetPaintProperty=null; }
-      if(map?.getLayer?.("wh-docks")) try{ map.removeLayer("wh-docks"); }catch(_){}
-      if(map?.getSource?.("wh-docks-src")) try{ map.removeSource("wh-docks-src"); }catch(_){}
-      window.removeEventListener("resize", onResize);
-      if(map && map.off) map.off("resize", onResize);
-    }catch(_){}
-  }
-
-  window.FacilityModel = {
-    build, show, hide, dispose,
-    pulseDocks: ()=>{ pulseUntil = performance.now() + 1600; }
-  };
+  window.FacilityModel = { build, showKPI };
 })();
