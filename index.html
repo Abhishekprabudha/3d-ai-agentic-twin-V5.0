@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agentic Twin — Staged Disruptions</title>
+
+  <!-- MapLibre styles -->
   <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+
   <style>
     :root{
       --bg:#0a0a0b;
@@ -102,12 +105,14 @@
         </div>
       </div>
     </aside>
+
     <main id="stage">
       <div id="ui">
         <button id="btnBefore">Before Disruption</button>
         <button id="btnAfter">After Correction</button>
         <button id="btnWarehouse">Design Warehouse</button>
       </div>
+
       <div id="stats">
         <h3>Predicted Dashboard Status</h3>
         <table id="statsTable">
@@ -115,19 +120,21 @@
           <tbody></tbody>
         </table>
       </div>
+
       <div id="map"></div>
     </main>
   </div>
 
   <!-- Core libs -->
   <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
-  <!-- Three.js + GLTF loader for .glb -->
+
+  <!-- Three.js + GLTF loader for .glb (keep this order) -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- App scripts -->
-  <script src="script.js"></script>
-  <script src="playDesignWarehouse.js"></script>
-  <script src="facilityModel_three.js"></script>
+  <!-- App scripts (add cache-busters to avoid stale JS on GitHub Pages) -->
+  <script src="script.js?v=1"></script>
+  <script src="playDesignWarehouse.js?v=2"></script>
+  <script src="facilityModel_three.js?v=4"></script>
 </body>
 </html>
