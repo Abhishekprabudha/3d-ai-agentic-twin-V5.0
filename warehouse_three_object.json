@@ -1,0 +1,990 @@
+{
+  "metadata": {
+    "version": 4.5,
+    "type": "Object",
+    "generator": "python-threejs-json-writer"
+  },
+  "geometries": [
+    {
+      "uuid": "geoFloor",
+      "type": "BoxGeometry",
+      "width": 120.0,
+      "height": 80.0,
+      "depth": 0.5
+    },
+    {
+      "uuid": "geoWallNS",
+      "type": "BoxGeometry",
+      "width": 120.0,
+      "height": 0.6,
+      "depth": 14.0
+    },
+    {
+      "uuid": "geoWallEW",
+      "type": "BoxGeometry",
+      "width": 0.6,
+      "height": 80.0,
+      "depth": 14.0
+    },
+    {
+      "uuid": "geoRoof",
+      "type": "BoxGeometry",
+      "width": 122.0,
+      "height": 82.0,
+      "depth": 0.8
+    },
+    {
+      "uuid": "geoTrimX",
+      "type": "BoxGeometry",
+      "width": 122.0,
+      "height": 0.25,
+      "depth": 0.25
+    },
+    {
+      "uuid": "geoTrimY",
+      "type": "BoxGeometry",
+      "width": 0.25,
+      "height": 82.0,
+      "depth": 0.25
+    },
+    {
+      "uuid": "geoPallet",
+      "type": "BoxGeometry",
+      "width": 3.5,
+      "height": 3.5,
+      "depth": 2.2
+    }
+  ],
+  "materials": [
+    {
+      "uuid": "matFloor",
+      "type": "MeshStandardMaterial",
+      "color": 3817287,
+      "roughness": 0.7,
+      "metalness": 0.05
+    },
+    {
+      "uuid": "matWall",
+      "type": "MeshStandardMaterial",
+      "color": 15789284,
+      "roughness": 0.75,
+      "metalness": 0.0
+    },
+    {
+      "uuid": "matRoof",
+      "type": "MeshStandardMaterial",
+      "color": 14474460,
+      "roughness": 0.5,
+      "metalness": 0.05
+    },
+    {
+      "uuid": "matTrim",
+      "type": "MeshStandardMaterial",
+      "color": 10134701,
+      "roughness": 0.4,
+      "metalness": 0.15
+    },
+    {
+      "uuid": "matPallet",
+      "type": "MeshStandardMaterial",
+      "color": 15118428,
+      "roughness": 0.6,
+      "metalness": 0.05
+    }
+  ],
+  "object": {
+    "uuid": "root-warehouse",
+    "type": "Group",
+    "name": "WarehouseScene",
+    "children": [
+      {
+        "uuid": "floor",
+        "type": "Mesh",
+        "name": "floor",
+        "geometry": "geoFloor",
+        "material": "matFloor",
+        "castShadow": false,
+        "receiveShadow": true,
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0.25
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "northWall",
+        "type": "Mesh",
+        "name": "northWall",
+        "geometry": "geoWallNS",
+        "material": "matWall",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 0,
+          "y": 39.7,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "southWall",
+        "type": "Mesh",
+        "name": "southWall",
+        "geometry": "geoWallNS",
+        "material": "matWall",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 0,
+          "y": -39.7,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "eastWall",
+        "type": "Mesh",
+        "name": "eastWall",
+        "geometry": "geoWallEW",
+        "material": "matWall",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 59.7,
+          "y": 0,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "westWall",
+        "type": "Mesh",
+        "name": "westWall",
+        "geometry": "geoWallEW",
+        "material": "matWall",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -59.7,
+          "y": 0,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "roof",
+        "type": "Mesh",
+        "name": "roof",
+        "geometry": "geoRoof",
+        "material": "matRoof",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 14.4
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "trimN",
+        "type": "Mesh",
+        "name": "trimN",
+        "geometry": "geoTrimX",
+        "material": "matTrim",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 0,
+          "y": 41.0,
+          "z": 14.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "trimS",
+        "type": "Mesh",
+        "name": "trimS",
+        "geometry": "geoTrimX",
+        "material": "matTrim",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 0,
+          "y": -41.0,
+          "z": 14.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "trimE",
+        "type": "Mesh",
+        "name": "trimE",
+        "geometry": "geoTrimY",
+        "material": "matTrim",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 61.0,
+          "y": 0,
+          "z": 14.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "trimW",
+        "type": "Mesh",
+        "name": "trimW",
+        "geometry": "geoTrimY",
+        "material": "matTrim",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -61.0,
+          "y": 0,
+          "z": 14.0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_0_0",
+        "type": "Mesh",
+        "name": "pallet_0_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -50.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_0_1",
+        "type": "Mesh",
+        "name": "pallet_0_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -50.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_0_2",
+        "type": "Mesh",
+        "name": "pallet_0_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -50.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_1_0",
+        "type": "Mesh",
+        "name": "pallet_1_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -38.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_1_1",
+        "type": "Mesh",
+        "name": "pallet_1_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -38.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_1_2",
+        "type": "Mesh",
+        "name": "pallet_1_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -38.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_2_0",
+        "type": "Mesh",
+        "name": "pallet_2_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -26.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_2_1",
+        "type": "Mesh",
+        "name": "pallet_2_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -26.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_2_2",
+        "type": "Mesh",
+        "name": "pallet_2_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -26.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_3_0",
+        "type": "Mesh",
+        "name": "pallet_3_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -14.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_3_1",
+        "type": "Mesh",
+        "name": "pallet_3_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -14.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_3_2",
+        "type": "Mesh",
+        "name": "pallet_3_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -14.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_4_0",
+        "type": "Mesh",
+        "name": "pallet_4_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -2.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_4_1",
+        "type": "Mesh",
+        "name": "pallet_4_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -2.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_4_2",
+        "type": "Mesh",
+        "name": "pallet_4_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": -2.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_5_0",
+        "type": "Mesh",
+        "name": "pallet_5_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 10.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_5_1",
+        "type": "Mesh",
+        "name": "pallet_5_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 10.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_5_2",
+        "type": "Mesh",
+        "name": "pallet_5_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 10.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_6_0",
+        "type": "Mesh",
+        "name": "pallet_6_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 22.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_6_1",
+        "type": "Mesh",
+        "name": "pallet_6_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 22.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_6_2",
+        "type": "Mesh",
+        "name": "pallet_6_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 22.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_7_0",
+        "type": "Mesh",
+        "name": "pallet_7_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 34.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_7_1",
+        "type": "Mesh",
+        "name": "pallet_7_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 34.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_7_2",
+        "type": "Mesh",
+        "name": "pallet_7_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 34.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_8_0",
+        "type": "Mesh",
+        "name": "pallet_8_0",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 46.0,
+          "y": -28.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_8_1",
+        "type": "Mesh",
+        "name": "pallet_8_1",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 46.0,
+          "y": -8.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      {
+        "uuid": "pallet_8_2",
+        "type": "Mesh",
+        "name": "pallet_8_2",
+        "geometry": "geoPallet",
+        "material": "matPallet",
+        "castShadow": true,
+        "receiveShadow": false,
+        "position": {
+          "x": 46.0,
+          "y": 12.0,
+          "z": 1.2
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    ]
+  }
+}
