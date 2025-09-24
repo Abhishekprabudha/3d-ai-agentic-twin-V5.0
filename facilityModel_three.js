@@ -3,21 +3,16 @@
   const GLB_URL = "data/warehouse_aslali.glb";
 
   let map = null, design = null;
-
-  // three.js
   let rootEl = null, renderer = null, scene = null, camera = null, glb = null, rafId = null;
 
-  // dock highlights (six pads: 5 inbound north + 1 outbound south)
   let dockHighlights = [];
   let pulseUntil = 0;
-
-  // monkeypatch hook (to mirror MapLibre DOCKS pulse)
   let _origSetPaintProperty = null;
 
-  const $ = (sel) => document.querySelector(sel);
-  const log  = (...a)=>{ try{ console.log("[FacilityModel]", ...a);}catch(_){} };
-  const warn = (...a)=>{ try{ console.warn("[FacilityModel]", ...a);}catch(_){} };
-  const err  = (...a)=>{ try{ console.error("[FacilityModel]", ...a);}catch(_){} };
+  const $   = (sel)=>document.querySelector(sel);
+  const log = (...a)=>{ try{ console.log("[FacilityModel]", ...a);}catch(_){} };
+  const warn= (...a)=>{ try{ console.warn("[FacilityModel]", ...a);}catch(_){} };
+  const err = (...a)=>{ try{ console.error("[FacilityModel]", ...a);}catch(_){} };
 
   function makeRoot(container) {
     const el = document.createElement("div");
@@ -30,7 +25,9 @@
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     r.setSize(el.clientWidth, Math.max(1, el.clientHeight));
-    r.outputEncoding = THREE.sRGBEncoding;
+    // Cross-version color space handling:
+    if ("outputColorSpace" in r && THREE.SRGBColorSpace) r.outputColorSpace = THREE.SRGBColorSpace;
+    else if ("outputEncoding" in r && THREE.sRGBEncoding) r.outputEncoding = THREE.sRGBEncoding;
     r.toneMapping = THREE.NoToneMapping;
     el.appendChild(r.domElement);
     return r;
@@ -55,22 +52,12 @@
     const b = boxOf(obj);
     const size = new THREE.Vector3(); b.getSize(size);
     const center = new THREE.Vector3(); b.getCenter(center);
-
-    // center model
     obj.position.sub(center);
-
-    // autoscale to footprint (handles mm/cm exports)
     const eps = 1e-6;
     const w = Math.max(size.x, eps), d = Math.max(size.z, eps);
-    const targetW = fp.width_m, targetD = fp.depth_m;
-    const s = Math.min(targetW / w, targetD / d);
-    const within = (w/targetW > 0.5 && w/targetW < 2) && (d/targetD > 0.5 && d/targetD < 2);
-    if (!within) {
-      obj.scale.setScalar(s);
-      log("autoscale", { modelW:w.toFixed(3), modelD:d.toFixed(3), targetW, targetD, scale:s.toFixed(3) });
-    } else {
-      log("size ok, no autoscale", { modelW:w.toFixed(3), modelD:d.toFixed(3) });
-    }
+    const s = Math.min(fp.width_m / w, fp.depth_m / d);
+    const within = (w/fp.width_m > 0.5 && w/fp.width_m < 2) && (d/fp.depth_m > 0.5 && d/fp.depth_m < 2);
+    if (!within) { obj.scale.setScalar(s); log("autoscale", {w:w.toFixed(3), d:d.toFixed(3), s:s.toFixed(3)}); }
   }
   function fitCameraToObject(cam, obj) {
     const b = boxOf(obj);
@@ -81,7 +68,6 @@
     cam.position.set(center.x + dist, center.y + dist * 0.7, center.z + dist);
     cam.lookAt(center);
   }
-
   function animate() {
     rafId = requestAnimationFrame(animate);
     const now = performance.now();
@@ -107,7 +93,7 @@
     camera.updateProjectionMatrix();
   }
 
-  // ---------- MapLibre DOCKS compatibility ----------
+  // ---- MapLibre layer for 2D dock dots (keeps DOCKS mark working) ----
   function mPerDeg(latDeg) {
     const lat = latDeg * Math.PI / 180;
     return { mPerDegLat: 111320, mPerDegLon: 111320 * Math.cos(lat) };
@@ -120,21 +106,17 @@
     if (!map || !design) return;
     const anchor = design.anchor || { lat: 22.94, lon: 72.62 };
     const fp = design.footprint || { width_m: 120, depth_m: 80 };
-
     const inbound = [];
-    const N = 5;
-    for (let i = 0; i < N; i++) {
-      const x = ((i + 0.5) / N - 0.5) * fp.width_m;
+    for (let i=0;i<5;i++){
+      const x = ((i + 0.5) / 5 - 0.5) * fp.width_m;
       const y = +fp.depth_m / 2;
       inbound.push(offsetMetersToLonLat(anchor.lat, anchor.lon, x, y));
     }
-    const outbound = [offsetMetersToLonLat(anchor.lat, anchor.lon, 0, -fp.depth_m / 2)];
-
+    const outbound = [ offsetMetersToLonLat(anchor.lat, anchor.lon, 0, -fp.depth_m/2) ];
     const feats = [
-      ...inbound.map(p => ({ type: "Feature", properties: { dir:"in" },  geometry: { type:"Point", coordinates:p } })),
-      ...outbound.map(p => ({ type: "Feature", properties: { dir:"out" }, geometry: { type:"Point", coordinates:p } }))
+      ...inbound.map(p=>({type:"Feature",properties:{dir:"in"}, geometry:{type:"Point",coordinates:p}})),
+      ...outbound.map(p=>({type:"Feature",properties:{dir:"out"},geometry:{type:"Point",coordinates:p}}))
     ];
-
     if (!map.getSource("wh-docks-src")) {
       map.addSource("wh-docks-src", { type:"geojson", data:{ type:"FeatureCollection", features:feats } });
     } else {
@@ -156,84 +138,66 @@
     _origSetPaintProperty = map.setPaintProperty.bind(map);
     map.setPaintProperty = (layerId, prop, value, klass) => {
       const r = _origSetPaintProperty(layerId, prop, value, klass);
-      if (layerId === "wh-docks" && prop === "circle-radius") {
-        pulseUntil = performance.now() + 1600;
-      }
+      if (layerId === "wh-docks" && prop === "circle-radius") pulseUntil = performance.now() + 1600;
       return r;
     };
   }
 
-  // ---------- 3D dock highlights (6 quads) ----------
+  // ---- 3D dock highlights (5 north + 1 south) ----
   function buildDockHighlightsAround(glbRoot) {
     const box = boxOf(glbRoot);
     const size = new THREE.Vector3(); box.getSize(size);
     const center = new THREE.Vector3(); box.getCenter(center);
-    const W = size.x, D = size.z;
-    if (!(W > 0 && D > 0)) { warn("dock highlights skipped: empty bbox"); return; }
-
+    const W = size.x, D = size.z; if (!(W>0 && D>0)) { warn("dock highlights skipped: empty bbox"); return; }
     const northZ = center.z + D * 0.5 + 0.01;
     const southZ = center.z - D * 0.5 + 0.01;
     const y = box.min.y + 0.02;
-
     const matIn  = new THREE.MeshBasicMaterial({ color:0x60a5fa, transparent:true, opacity:0.35 });
     const matOut = new THREE.MeshBasicMaterial({ color:0x34d399, transparent:true, opacity:0.35 });
 
-    const N = 5;
-    for (let i = 0; i < N; i++) {
-      const x = center.x + ((i + 0.5) / N - 0.5) * W;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(W / (N + 0.25), D * 0.06), matIn);
-      m.position.set(x, y, northZ);
-      m.rotation.x = -Math.PI / 2;
-      scene.add(m); dockHighlights.push(m);
+    for (let i=0;i<5;i++){
+      const x = center.x + ((i + 0.5) / 5 - 0.5) * W;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(W / (5 + 0.25), D * 0.06), matIn);
+      m.position.set(x, y, northZ); m.rotation.x = -Math.PI/2; scene.add(m); dockHighlights.push(m);
     }
-    {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(W / 5, D * 0.06), matOut);
-      m.position.set(center.x, y, southZ);
-      m.rotation.x = -Math.PI / 2;
-      scene.add(m); dockHighlights.push(m);
-    }
+    { const m = new THREE.Mesh(new THREE.PlaneGeometry(W / 5, D * 0.06), matOut);
+      m.position.set(center.x, y, southZ); m.rotation.x = -Math.PI/2; scene.add(m); dockHighlights.push(m); }
   }
 
-  // ---------- KPI ----------
+  // ---- KPI to stats ----
   function computeThroughputUPH() {
     const docks = Array.isArray(design?.docks) ? design.docks : [];
-    const inbound = docks.filter(d => (d.type||"").toLowerCase()==="inbound").length || 5;
-    const overlapOut = Number(design?.peak_overlap?.outbound ?? 1); // your boundary condition
+    const inbound = docks.filter(d=>String(d.type||"").toLowerCase()==="inbound").length || 5;
+    const overlapOut = Number(design?.peak_overlap?.outbound ?? 1);
     const concurrent = inbound + overlapOut; // 5 + 1 = 6
     const turn = Number(design?.dock_turn_min ?? 12);
     return Math.round((concurrent * 60) / Math.max(1, turn));
   }
   function writeKPIToStats() {
-    try {
-      const uph = computeThroughputUPH();
-      const tbody = $("#statsTable tbody"); if(!tbody) return;
-      tbody.innerHTML = "";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>Aslali Warehouse</td><td>—</td><td class="pos">+${uph}/hr</td><td class="neg">-${uph}/hr</td>`;
-      tbody.appendChild(tr);
-    } catch(e) { warn("stats write failed", e); }
+    const uph = computeThroughputUPH();
+    const tbody = $("#statsTable tbody"); if(!tbody) return;
+    tbody.innerHTML = "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>Aslali Warehouse</td><td>—</td><td class="pos">+${uph}/hr</td><td class="neg">-${uph}/hr</td>`;
+    tbody.appendChild(tr);
   }
 
-  // ---------- Fallback geometry (if GLB fails) ----------
+  // ---- Fallback geometry if GLB missing ----
   function addFallbackWarehouse() {
     warn("Using fallback placeholder geometry (GLB missing or invalid).");
     const fp = design?.footprint || { width_m:120, depth_m:80, height_m:12 };
     const geom = new THREE.BoxGeometry(fp.width_m, fp.height_m, fp.depth_m);
     const mat  = new THREE.MeshStandardMaterial({ color:0xdedede, metalness:0, roughness:0.9, transparent:true, opacity:0.95 });
-    glb = new THREE.Mesh(geom, mat);
-    glb.position.set(0, fp.height_m/2, 0);
-    scene.add(glb);
+    glb = new THREE.Mesh(geom, mat); glb.position.set(0, fp.height_m/2, 0); scene.add(glb);
   }
 
-  // ---------- public API ----------
   async function build(mapInstance, designJson) {
     dispose();
     map = mapInstance; design = designJson || {};
     const container = map.getContainer ? map.getContainer() : (document.getElementById("stage") || document.body);
 
-    // Create overlay, make it visible BEFORE measuring (fixes 0px canvas)
     rootEl = makeRoot(container);
-    rootEl.style.display = "";              // <-- critical
+    rootEl.style.display = "";                     // ensure visible before measuring
     renderer = makeRenderer(rootEl);
     scene = new THREE.Scene();
     camera = makeCamera();
@@ -241,11 +205,21 @@
 
     let loaded = false;
     await new Promise((resolve) => {
-      const loader = new THREE.GLTFLoader();
+      // Cross-version/global detection for GLTFLoader
+      const LoaderCtor =
+        (window.GLTFLoader && typeof window.GLTFLoader === "function") ? window.GLTFLoader :
+        (THREE.GLTFLoader && typeof THREE.GLTFLoader === "function") ? THREE.GLTFLoader :
+        null;
+
+      if (!LoaderCtor) {
+        err("GLTFLoader not available on window or THREE.");
+        resolve(); return;
+      }
+      const loader = new LoaderCtor();
       loader.load(
-        `${GLB_URL}?v=${Date.now()}`,       // cache-bust
+        `${GLB_URL}?v=${Date.now()}`,
         (gltf) => {
-          try{
+          try {
             glb = gltf.scene || gltf.scenes?.[0];
             if (!glb) throw new Error("no scene in glb");
             scene.add(glb);
@@ -254,9 +228,7 @@
             buildDockHighlightsAround(glb);
             loaded = true;
             log("GLB loaded OK");
-          }catch(e){
-            err("GLB parse error:", e);
-          }
+          } catch (e) { err("GLB parse error:", e); }
           resolve();
         },
         undefined,
@@ -270,14 +242,9 @@
       buildDockHighlightsAround(glb);
     }
 
-    ensureDockLayer();
-    hookDockPulse();
+    ensureDockLayer(); hookDockPulse();
 
-    show();
-    onResize();                             // <-- force proper size now
-    writeKPIToStats();
-    animate();
-
+    show(); onResize(); writeKPIToStats(); animate();
     window.addEventListener("resize", onResize);
     if (map && map.on) map.on("resize", onResize);
   }
@@ -288,18 +255,12 @@
     try{
       if (rafId) cancelAnimationFrame(rafId); rafId = null;
       dockHighlights.length = 0;
-
-      if (renderer) {
-        renderer.dispose?.();
-        renderer.domElement?.parentNode?.removeChild(renderer.domElement);
-      }
+      if (renderer) { renderer.dispose?.(); renderer.domElement?.parentNode?.removeChild(renderer.domElement); }
       rootEl?.parentNode?.removeChild(rootEl);
       rootEl = null; renderer = null; scene = null; camera = null; glb = null;
-
       if (map && _origSetPaintProperty) { map.setPaintProperty = _origSetPaintProperty; _origSetPaintProperty = null; }
-      if (map?.getLayer?.("wh-docks"))    { try{ map.removeLayer("wh-docks"); }catch(_){} }
-      if (map?.getSource?.("wh-docks-src")){ try{ map.removeSource("wh-docks-src"); }catch(_){} }
-
+      if (map?.getLayer?.("wh-docks"))     try{ map.removeLayer("wh-docks"); }catch(_){}
+      if (map?.getSource?.("wh-docks-src"))try{ map.removeSource("wh-docks-src"); }catch(_){}
       window.removeEventListener("resize", onResize);
       if (map && map.off) map.off("resize", onResize);
     }catch(_){}
@@ -307,7 +268,6 @@
 
   window.FacilityModel = {
     build, show, hide, dispose,
-    // optional manual pulse
     pulseDocks: ()=>{ pulseUntil = performance.now() + 1600; }
   };
 })();
