@@ -1,30 +1,20 @@
 // playDesignWarehouse.js — timeline-driven orchestration for the Design Warehouse play
-// Consumes:
-//   - designUrl: matches your schema (anchor, footprint, docks, bays, conveyors, truckPaths)
-//   - narrationUrl: [{ t: seconds, text: string, mark?: "ZOOM"|"BUILD"|"DOCKS"|"KPI"|"NETWORK" }]
-//
-// Requires: window.Narrator, window.FacilityModel, MapLibre map
-
 (function(){
   const NET_SRC = "design-network-src";
   const NET_LYR = "design-network-connector";
 
-  // helper: safe layer removal
   function removeNetwork(map){
     if(map.getLayer(NET_LYR)) map.removeLayer(NET_LYR);
     if(map.getSource(NET_SRC)) map.removeSource(NET_SRC);
   }
 
-  // helper: speak and show chat bubble
   async function say(line){
     if (window.Narrator) {
       await window.Narrator.sayLinesOnce([String(line)], 800, 0.95);
     }
   }
 
-  // helper: pulse docks briefly for the DOCKS mark
   function pulseDocks(map){
-    // we assume facilityModel added a circle layer with id "wh-docks"
     const L = "wh-docks";
     if(!map.getLayer(L)) return;
     let k = 0; const base = 6;
@@ -40,9 +30,7 @@
     }, 1600);
   }
 
-  // helper: fit view to three cities (Delhi–Ahmedabad–Mumbai) and show connector
   function showNationalConnector(map, ahd){
-    // Delhi, Ahmedabad (from design), Mumbai
     const DELHI = [77.2090, 28.6139];
     const AHD   = [ahd.lon, ahd.lat];
     const MUM   = [72.8777, 19.0760];
@@ -64,13 +52,11 @@
       paint: { "line-color":"#60a5fa", "line-width":4, "line-opacity":0.95 }
     });
 
-    // fit bounds
     const b = new maplibregl.LngLatBounds();
     [DELHI, AHD, MUM].forEach(c=>b.extend(c));
     map.fitBounds(b, { padding:{ top:60, left:320, right:60, bottom:80 }, duration: 2400, maxZoom: 6.8 });
   }
 
-  // run all timeline marks relative to now
   function scheduleTimeline(map, design, timeline){
     const t0 = performance.now();
 
@@ -83,9 +69,12 @@
         if (window.FacilityModel) window.FacilityModel.build(map, design);
       } else if (m === "DOCKS") {
         pulseDocks(map);
+        if (window.FacilityModel?.pulseDocks) window.FacilityModel.pulseDocks();
       } else if (m === "KPI") {
-        // (optional) hook to compute & show throughput on your stats panel
+        // KPI is written by FacilityModel during BUILD; nothing else required.
       } else if (m === "NETWORK") {
+        // Hide 3D overlay and show national connector
+        try { window.FacilityModel?.hide(); } catch(_) {}
         const a = design.anchor || { lon: 72.62, lat: 22.94 };
         showNationalConnector(map, a);
       }
@@ -103,19 +92,13 @@
   window.PlayDesignWarehouse = {
     async run(map, designUrl, narrationUrl) {
       try {
-        // If your files are at repo root, pass "warehouse_design_aslali.json" and "narration_design_aslali.json"
         const [design, narrationRaw] = await Promise.all([
           fetch(designUrl).then(r=>r.json()),
           fetch(narrationUrl).then(r=>r.json())
         ]);
 
-        // Narration file is an array of { t, text, mark }
         const timeline = Array.isArray(narrationRaw) ? narrationRaw : [];
-
-        // Start immediately: announce intent (nice touch for UX)
         await say("Designing a warehouse in the Aslali industrial area of Ahmedabad.");
-
-        // Schedule the entire play (ZOOM → BUILD → DOCKS → KPI → NETWORK)
         scheduleTimeline(map, design, timeline);
 
       } catch (e) {
